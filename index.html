@@ -23,8 +23,8 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: linear-gradient(180deg,#0a1020 0%, #0e1730 100%); color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
-  body { min-height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  .app { max-width: 760px; margin: 0 auto; padding: env(safe-area-inset-top) 14px calc(90px + env(safe-area-inset-bottom)) 14px; }
+  body { min-height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 220px; }
+  .app { max-width: 760px; margin: 0 auto; padding: env(safe-area-inset-top) 14px calc(210px + env(safe-area-inset-bottom)) 14px; }
   .header { position: sticky; top: 0; z-index: 30; backdrop-filter: blur(12px); background: rgba(10,16,32,.85); padding: 12px 0 10px; }
   h1 { margin: 0 0 6px; font-size: 1.35rem; line-height: 1.15; }
   .sub { color: var(--muted); font-size: .92rem; }
@@ -34,7 +34,7 @@
     border-radius: var(--radius);
     box-shadow: var(--shadow);
   }
-  .controls { margin-top: 14px; padding: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .controls { margin-top: 14px; padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .field label { display:block; color: var(--muted); font-size:.78rem; margin-bottom:6px; }
   .field input[type="number"], .field input[type="date"] {
     width: 100%; padding: 13px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-size: 1rem;
@@ -46,9 +46,10 @@
   .primary { background: linear-gradient(180deg, var(--accent), #2d88f0); color: white; flex:1; }
   .secondary { background: #20304b; color: var(--text); }
   .ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
-  .trip-list { margin-top: 14px; display: grid; gap: 12px; }
+  .trip-list { margin-top: 16px; display: grid; gap: 14px; }
   .stop {
-    padding: 14px; position: relative;
+    padding: 16px; position: relative;
+    scroll-margin-bottom: 220px;
   }
   .stop-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
   .stop-num { font-weight:700; font-size:.95rem; color: var(--accent-2); }
@@ -76,11 +77,26 @@
   .stop.missing-route .missing { display:block; }
   .sticky-summary {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-    background: linear-gradient(180deg, rgba(10,16,32,.3), rgba(10,16,32,.92) 35%);
+    background: linear-gradient(180deg, rgba(10,16,32,.18), rgba(10,16,32,.88) 28%, rgba(10,16,32,.96) 100%);
     backdrop-filter: blur(14px);
+    transition: transform .18s ease, opacity .18s ease;
   }
+  .sticky-summary.is-collapsed .summary-card,
+  .sticky-summary.is-collapsed .footer-note {
+    display: none;
+  }
+  .summary-shell { max-width: 760px; margin: 0 auto; }
+  .summary-toggle {
+    width: 100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line);
+    background: rgba(17,26,44,.96); color: var(--text); font-size: .95rem; font-weight: 700;
+    box-shadow: var(--shadow);
+  }
+  .summary-toggle small { color: var(--muted); font-weight: 600; font-size: .8rem; }
+  .summary-toggle .chev { transition: transform .18s ease; color: var(--accent-2); }
+  .sticky-summary.is-collapsed .summary-toggle .chev { transform: rotate(180deg); }
   .summary-card {
-    max-width: 760px; margin: 0 auto; padding: 12px; display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+    margin-top: 10px; padding: 12px; display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
   }
   .summary-item { padding: 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
   .summary-item .label { color: var(--muted); font-size: .75rem; }
@@ -88,10 +104,17 @@
   .summary-item.total { grid-column: 1/-1; background: linear-gradient(180deg, rgba(77,163,255,.17), rgba(77,163,255,.08)); }
   .footer-note { color: var(--muted); font-size: .78rem; text-align:center; margin-top: 8px; }
   @media (max-width: 560px) {
-    .controls { grid-template-columns: 1fr; }
-    .stats { grid-template-columns: 1fr 1fr; }
-    .row { grid-template-columns: 1fr; }
+    body { padding-bottom: 180px; }
+    .app { padding-left: 12px; padding-right: 12px; padding-bottom: calc(170px + env(safe-area-inset-bottom)); }
+    .controls { grid-template-columns: 1fr; padding: 14px; }
+    .stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat { padding: 9px; }
+    .row { grid-template-columns: 1fr; gap: 10px; }
     .checkbox-wrap { justify-content: flex-start; }
+    .summary-card { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .summary-item { padding: 10px; }
+    .summary-item .value { font-size: 1rem; }
+    .footer-note { padding: 0 4px; }
   }
 </style>
 </head>
@@ -120,8 +143,16 @@
     <section id="tripList" class="trip-list"></section>
   </div>
 
-  <div class="sticky-summary">
-    <div class="summary-card">
+  <div class="sticky-summary" id="stickySummary">
+    <div class="summary-shell">
+      <button id="summaryToggle" class="summary-toggle" type="button" aria-expanded="true">
+        <span>
+          Totals
+          <small id="summaryMiniTotal">$0.00</small>
+        </span>
+        <span class="chev">▾</span>
+      </button>
+      <div class="summary-card">
       <div class="summary-item">
         <div class="label">Total miles</div>
         <div class="value" id="totalMiles">0</div>
@@ -142,8 +173,9 @@
         <div class="label">Total pay</div>
         <div class="value" id="totalPay">$0.00</div>
       </div>
+      </div>
+      <div class="footer-note">Route lookup uses your uploaded mileage table and automatically checks the reverse direction too.</div>
     </div>
-    <div class="footer-note">Route lookup uses your uploaded mileage table and automatically checks the reverse direction too.</div>
   </div>
 
 <script>
@@ -163,6 +195,9 @@ const totalPaidStopsEl = document.getElementById("totalPaidStops");
 const milesPayEl = document.getElementById("milesPay");
 const loadPayEl = document.getElementById("loadPay");
 const totalPayEl = document.getElementById("totalPay");
+const stickySummary = document.getElementById("stickySummary");
+const summaryToggle = document.getElementById("summaryToggle");
+const summaryMiniTotal = document.getElementById("summaryMiniTotal");
 
 function currency(n) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
@@ -339,7 +374,9 @@ function recalc() {
   totalPaidStopsEl.textContent = String(totalPaidStops);
   milesPayEl.textContent = currency(milesPay);
   loadPayEl.textContent = currency(totalLoadPay);
-  totalPayEl.textContent = currency(milesPay + totalLoadPay);
+  const overall = milesPay + totalLoadPay;
+  totalPayEl.textContent = currency(overall);
+  summaryMiniTotal.textContent = currency(overall);
 
   saveState();
 }
@@ -379,13 +416,21 @@ function boot() {
   renumberStops();
   recalc();
 
+  summaryToggle.addEventListener("click", function(){
+    const collapsed = stickySummary.classList.toggle("is-collapsed");
+    summaryToggle.setAttribute("aria-expanded", String(!collapsed));
+  });
+
   function handleAddStop(e) {
     if (e) e.preventDefault();
     tripList.appendChild(createStopRow());
     renumberStops();
     recalc();
     const input = tripList.lastElementChild.querySelector('.location-input');
-    if (input) input.focus();
+    if (input) {
+      input.focus();
+      setTimeout(() => input.scrollIntoView({behavior:'smooth', block:'center'}), 50);
+    }
   }
 
   ['click','touchend'].forEach(evt => addStopBtn.addEventListener(evt, handleAddStop, {passive:false}));
