@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>JB Hunt Denali Mileage Tracker</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #111a2c;
+    --panel-2: #17233a;
+    --text: #eef4ff;
+    --muted: #9eb0d0;
+    --line: #28405f;
+    --accent: #4da3ff;
+    --accent-2: #7bc1ff;
+    --danger: #ff6b6b;
+    --ok: #36c27a;
+    --warn-bg: rgba(255,107,107,.12);
+    --warn-border: rgba(255,107,107,.45);
+    --shadow: 0 10px 30px rgba(0,0,0,.28);
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: linear-gradient(180deg,#0a1020 0%, #0e1730 100%); color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  body { min-height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .app { max-width: 760px; margin: 0 auto; padding: env(safe-area-inset-top) 14px calc(90px + env(safe-area-inset-bottom)) 14px; }
+  .header { position: sticky; top: 0; z-index: 30; backdrop-filter: blur(12px); background: rgba(10,16,32,.85); padding: 12px 0 10px; }
+  h1 { margin: 0 0 6px; font-size: 1.35rem; line-height: 1.15; }
+  .sub { color: var(--muted); font-size: .92rem; }
+  .panel {
+    background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .controls { margin-top: 14px; padding: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field label { display:block; color: var(--muted); font-size:.78rem; margin-bottom:6px; }
+  .field input[type="number"], .field input[type="date"] {
+    width: 100%; padding: 13px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-size: 1rem;
+  }
+  .actions { display:flex; gap:10px; grid-column:1/-1; }
+  button {
+    appearance: none; border: none; border-radius: 14px; padding: 13px 16px; font-size: 1rem; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; min-height: 48px;
+  }
+  .primary { background: linear-gradient(180deg, var(--accent), #2d88f0); color: white; flex:1; }
+  .secondary { background: #20304b; color: var(--text); }
+  .ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  .trip-list { margin-top: 14px; display: grid; gap: 12px; }
+  .stop {
+    padding: 14px; position: relative;
+  }
+  .stop-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .stop-num { font-weight:700; font-size:.95rem; color: var(--accent-2); }
+  .remove { background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 8px 12px; border-radius: 12px; font-size:.9rem; }
+  .location-input {
+    width: 100%; padding: 14px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-size: 1rem;
+  }
+  .row {
+    display:grid; grid-template-columns: 1fr auto; gap: 12px; align-items:center; margin-top: 12px;
+  }
+  .checkbox-wrap { display:flex; align-items:center; gap:8px; color: var(--muted); white-space: nowrap; }
+  .checkbox-wrap input { width: 24px; height: 24px; accent-color: var(--accent); }
+  .stats {
+    display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px;
+  }
+  .stat {
+    background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 14px; padding: 10px;
+  }
+  .stat .label { color: var(--muted); font-size: .72rem; margin-bottom: 3px; }
+  .stat .value { font-size: 1rem; font-weight: 700; }
+  .missing {
+    margin-top: 10px; display:none; padding: 10px 12px; border-radius: 14px; background: var(--warn-bg); border: 1px solid var(--warn-border); color: #ffd1d1; font-size: .9rem;
+  }
+  .stop.missing-route { border-color: var(--warn-border); background: linear-gradient(180deg, rgba(255,107,107,.08), rgba(255,107,107,.03)); }
+  .stop.missing-route .missing { display:block; }
+  .sticky-summary {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(10,16,32,.3), rgba(10,16,32,.92) 35%);
+    backdrop-filter: blur(14px);
+  }
+  .summary-card {
+    max-width: 760px; margin: 0 auto; padding: 12px; display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  }
+  .summary-item { padding: 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+  .summary-item .label { color: var(--muted); font-size: .75rem; }
+  .summary-item .value { font-size: 1.1rem; font-weight: 800; margin-top: 4px; }
+  .summary-item.total { grid-column: 1/-1; background: linear-gradient(180deg, rgba(77,163,255,.17), rgba(77,163,255,.08)); }
+  .footer-note { color: var(--muted); font-size: .78rem; text-align:center; margin-top: 8px; }
+  @media (max-width: 560px) {
+    .controls { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .row { grid-template-columns: 1fr; }
+    .checkbox-wrap { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>JB Hunt Denali Mileage Tracker</h1>
+      <div class="sub">Phone-first trip builder. Pick stops in order, check load/unload when paid, and the totals update automatically.</div>
+    </div>
+
+    <section class="panel controls">
+      <div class="field">
+        <label for="tripDate">Trip date</label>
+        <input id="tripDate" type="date" />
+      </div>
+      <div class="field">
+        <label for="payRate">Pay rate per mile ($)</label>
+        <input id="payRate" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" />
+      </div>
+      <div class="actions">
+        <button id="addStopBtn" class="primary" type="button">Add stop</button>
+        <button id="resetBtn" class="secondary" type="button">Reset trip</button>
+      </div>
+    </section>
+
+    <section id="tripList" class="trip-list"></section>
+  </div>
+
+  <div class="sticky-summary">
+    <div class="summary-card">
+      <div class="summary-item">
+        <div class="label">Total miles</div>
+        <div class="value" id="totalMiles">0</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">Total stops with load/unload</div>
+        <div class="value" id="totalPaidStops">0</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">Miles pay</div>
+        <div class="value" id="milesPay">$0.00</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">Load pay</div>
+        <div class="value" id="loadPay">$0.00</div>
+      </div>
+      <div class="summary-item total">
+        <div class="label">Total pay</div>
+        <div class="value" id="totalPay">$0.00</div>
+      </div>
+    </div>
+    <div class="footer-note">Route lookup uses your uploaded mileage table and automatically checks the reverse direction too.</div>
+  </div>
+
+<script>
+const LOAD_PAY = 37;
+const LOCATIONS = ["Advanced Micro", "Allen Gas Station", "Allens Canning", "Bakey Feeds", "Barton Rd", "Berryville Pit", "Bluebell", "ButterBall Huntsville", "Butterball Ozark", "Cargill Feedmill", "Cargill Live Haul Springdale", "Cecil", "Cecil Plow", "Chick n Quick", "Cobb Vantress (truckwash + hatchery)", "Denali Plow Ozark", "Drain Masters", "Durham", "Gerber", "Gravette", "Green Forest Fracs/ YARD", "Greenwood", "Hackett", "Harrison", "Highway 59", "Hiland Dairy", "Hindsville", "Hiram Walker", "Hydro Ag Mulberry Plow", "Keith Smith", "Kibler Plow Sites and Storage", "Kibler Storage Tanks", "Lowell", "Mars Pet Foods", "Mckee Foods", "Moses Plumbing", "Natural Dam", "Nebo", "OK Foods Fort Smith", "OK Foods Heavener", "OMP (Ozark Mtn Poultry)", "Paris Bottoms", "Pinnacle Foods in Fayeteville", "Planters", "Possum Hollow Rd", "Pro Rooter", "ROARK", "Schwanns", "Shale Pit", "Shell Knob", "Simmons Benton County", "Simmons Feedmill Decatur/Wellness pet", "Simmons New Plant (Cook Plant)", "Simmons Old Decatur Plant", "Simmons Old Plant (Main Plant)", "Simmons Treats/truckwash/wetpet", "South West City Plow", "Southeastern Poultry", "Southwest City", "Tate & Lyle", "The Bull", "Twin Rivers", "Tyson Berry Street", "Tyson Berryville", "Tyson Foods Bergman Feed Mill", "Tyson Ft Smith", "Tyson Green Forest", "Tyson Johnson Road", "Tyson Randall Road + Tyson Truck Stop", "Tyson Research and Development", "Tyson Waldron", "Tyson of Rogers", "Van Buren Yard", "Wesley", "West Ark Plumbing", "Zero Mtn"];
+const ROUTES = {"Tyson of Rogers|Kibler Plow Sites and Storage": 76.0, "Kibler Plow Sites and Storage|Tyson of Rogers": 76.0, "Tyson of Rogers|Allens Canning": 29.0, "Allens Canning|Tyson of Rogers": 29.0, "Tyson of Rogers|Hackett": 97.0, "Hackett|Tyson of Rogers": 97.0, "Tyson of Rogers|Nebo": 78.0, "Nebo|Tyson of Rogers": 78.0, "Tyson of Rogers|Highway 59": 77.0, "Highway 59|Tyson of Rogers": 77.0, "Tyson of Rogers|Hydro Ag Mulberry Plow": 77.0, "Hydro Ag Mulberry Plow|Tyson of Rogers": 77.0, "Tyson of Rogers|Cecil": 107.0, "Cecil|Tyson of Rogers": 107.0, "Tyson of Rogers|Greenwood": 105.0, "Greenwood|Tyson of Rogers": 105.0, "Tyson of Rogers|Gravette": 34.0, "Gravette|Tyson of Rogers": 34.0, "Cargill Live Haul Springdale|Kibler Plow Sites and Storage": 67.0, "Kibler Plow Sites and Storage|Cargill Live Haul Springdale": 67.0, "Cargill Live Haul Springdale|Allens Canning": 23.0, "Allens Canning|Cargill Live Haul Springdale": 23.0, "Cargill Live Haul Springdale|Hackett": 89.0, "Hackett|Cargill Live Haul Springdale": 89.0, "Cargill Live Haul Springdale|Nebo": 70.0, "Nebo|Cargill Live Haul Springdale": 70.0, "Cargill Live Haul Springdale|Highway 59": 68.0, "Highway 59|Cargill Live Haul Springdale": 68.0, "Cargill Live Haul Springdale|Hydro Ag Mulberry Plow": 73.0, "Hydro Ag Mulberry Plow|Cargill Live Haul Springdale": 73.0, "Cargill Live Haul Springdale|Cecil": 98.0, "Cecil|Cargill Live Haul Springdale": 98.0, "Cargill Live Haul Springdale|Greenwood": 96.0, "Greenwood|Cargill Live Haul Springdale": 96.0, "Cargill Live Haul Springdale|Gravette": 45.0, "Gravette|Cargill Live Haul Springdale": 45.0, "Cargill Feedmill|Kibler Plow Sites and Storage": 62.0, "Kibler Plow Sites and Storage|Cargill Feedmill": 62.0, "Cargill Feedmill|Allens Canning": 22.0, "Allens Canning|Cargill Feedmill": 22.0, "Cargill Feedmill|Hackett": 83.0, "Hackett|Cargill Feedmill": 83.0, "Cargill Feedmill|Nebo": 64.0, "Nebo|Cargill Feedmill": 64.0, "Cargill Feedmill|Highway 59": 63.0, "Highway 59|Cargill Feedmill": 63.0, "Cargill Feedmill|Hydro Ag Mulberry Plow": 67.0, "Hydro Ag Mulberry Plow|Cargill Feedmill": 67.0, "Cargill Feedmill|Cecil": 92.0, "Cecil|Cargill Feedmill": 92.0, "Cargill Feedmill|Greenwood": 90.0, "Greenwood|Cargill Feedmill": 90.0, "Cargill Feedmill|Gravette": 48.0, "Gravette|Cargill Feedmill": 48.0, "Tyson Randall Road + Tyson Truck Stop|Kibler Plow Sites and Storage": 66.0, "Kibler Plow Sites and Storage|Tyson Randall Road + Tyson Truck Stop": 66.0, "Tyson Randall Road + Tyson Truck Stop|Allens Canning": 22.0, "Allens Canning|Tyson Randall Road + Tyson Truck Stop": 22.0, "Tyson Randall Road + Tyson Truck Stop|Hackett": 88.0, "Hackett|Tyson Randall Road + Tyson Truck Stop": 88.0, "Tyson Randall Road + Tyson Truck Stop|Nebo": 69.0, "Nebo|Tyson Randall Road + Tyson Truck Stop": 69.0, "Tyson Randall Road + Tyson Truck Stop|Highway 59": 68.0, "Highway 59|Tyson Randall Road + Tyson Truck Stop": 68.0, "Tyson Randall Road + Tyson Truck Stop|Hydro Ag Mulberry Plow": 72.0, "Hydro Ag Mulberry Plow|Tyson Randall Road + Tyson Truck Stop": 72.0, "Tyson Randall Road + Tyson Truck Stop|Cecil": 97.0, "Cecil|Tyson Randall Road + Tyson Truck Stop": 97.0, "Tyson Randall Road + Tyson Truck Stop|Greenwood": 95.0, "Greenwood|Tyson Randall Road + Tyson Truck Stop": 95.0, "Tyson Randall Road + Tyson Truck Stop|Gravette": 44.0, "Gravette|Tyson Randall Road + Tyson Truck Stop": 44.0, "Tyson Johnson Road|Kibler Plow Sites and Storage": 61.0, "Kibler Plow Sites and Storage|Tyson Johnson Road": 61.0, "Tyson Johnson Road|Allens Canning": 21.0, "Allens Canning|Tyson Johnson Road": 21.0, "Tyson Johnson Road|Hackett": 83.0, "Hackett|Tyson Johnson Road": 83.0, "Tyson Johnson Road|Nebo": 64.0, "Nebo|Tyson Johnson Road": 64.0, "Tyson Johnson Road|Highway 59": 63.0, "Highway 59|Tyson Johnson Road": 63.0, "Tyson Johnson Road|Hydro Ag Mulberry Plow": 67.0, "Hydro Ag Mulberry Plow|Tyson Johnson Road": 67.0, "Tyson Johnson Road|Cecil": 92.0, "Cecil|Tyson Johnson Road": 92.0, "Tyson Johnson Road|Greenwood": 90.0, "Greenwood|Tyson Johnson Road": 90.0, "Tyson Johnson Road|Gravette": 47.0, "Gravette|Tyson Johnson Road": 47.0, "Southeastern Poultry|Kibler Plow Sites and Storage": 78.0, "Kibler Plow Sites and Storage|Southeastern Poultry": 78.0, "Southeastern Poultry|Allens Canning": 34.0, "Allens Canning|Southeastern Poultry": 34.0, "Southeastern Poultry|Hackett": 100.0, "Hackett|Southeastern Poultry": 100.0, "Southeastern Poultry|Nebo": 81.0, "Nebo|Southeastern Poultry": 81.0, "Southeastern Poultry|Highway 59": 80.0, "Highway 59|Southeastern Poultry": 80.0, "Southeastern Poultry|Hydro Ag Mulberry Plow": 84.0, "Hydro Ag Mulberry Plow|Southeastern Poultry": 84.0, "Southeastern Poultry|Cecil": 109.0, "Cecil|Southeastern Poultry": 109.0, "Southeastern Poultry|Greenwood": 107.0, "Greenwood|Southeastern Poultry": 107.0, "Southeastern Poultry|Gravette": 32.0, "Gravette|Southeastern Poultry": 32.0, "Tyson Research and Development|Kibler Plow Sites and Storage": 62.0, "Kibler Plow Sites and Storage|Tyson Research and Development": 62.0, "Tyson Research and Development|Allens Canning": 77.0, "Allens Canning|Tyson Research and Development": 21.0, "Tyson Research and Development|Hackett": 83.0, "Hackett|Tyson Research and Development": 83.0, "Tyson Research and Development|Nebo": 65.0, "Nebo|Tyson Research and Development": 65.0, "Tyson Research and Development|Highway 59": 63.0, "Highway 59|Tyson Research and Development": 63.0, "Tyson Research and Development|Hydro Ag Mulberry Plow": 68.0, "Hydro Ag Mulberry Plow|Tyson Research and Development": 68.0, "Tyson Research and Development|Cecil": 93.0, "Cecil|Tyson Research and Development": 93.0, "Tyson Research and Development|Greenwood": 91.0, "Greenwood|Tyson Research and Development": 91.0, "Tyson Research and Development|Gravette": 47.0, "Gravette|Tyson Research and Development": 47.0, "Chick n Quick|Kibler Plow Sites and Storage": 74.0, "Kibler Plow Sites and Storage|Chick n Quick": 74.0, "Chick n Quick|Allens Canning": 30.0, "Allens Canning|Chick n Quick": 30.0, "Chick n Quick|Hackett": 95.0, "Hackett|Chick n Quick": 95.0, "Chick n Quick|Nebo": 76.0, "Nebo|Chick n Quick": 76.0, "Chick n Quick|Highway 59": 75.0, "Highway 59|Chick n Quick": 75.0, "Chick n Quick|Hydro Ag Mulberry Plow": 80.0, "Hydro Ag Mulberry Plow|Chick n Quick": 80.0, "Chick n Quick|Cecil": 105.0, "Cecil|Chick n Quick": 105.0, "Chick n Quick|Greenwood": 103.0, "Greenwood|Chick n Quick": 103.0, "Chick n Quick|Gravette": 36.0, "Gravette|Chick n Quick": 36.0, "OMP (Ozark Mtn Poultry)|Kibler Plow Sites and Storage": 80.0, "Kibler Plow Sites and Storage|OMP (Ozark Mtn Poultry)": 80.0, "OMP (Ozark Mtn Poultry)|Allens Canning": 36.0, "Allens Canning|OMP (Ozark Mtn Poultry)": 36.0, "OMP (Ozark Mtn Poultry)|Hackett": 101.0, "Hackett|OMP (Ozark Mtn Poultry)": 101.0, "OMP (Ozark Mtn Poultry)|Nebo": 82.0, "Nebo|OMP (Ozark Mtn Poultry)": 82.0, "OMP (Ozark Mtn Poultry)|Highway 59": 81.0, "Highway 59|OMP (Ozark Mtn Poultry)": 81.0, "OMP (Ozark Mtn Poultry)|Hydro Ag Mulberry Plow": 85.0, "Hydro Ag Mulberry Plow|OMP (Ozark Mtn Poultry)": 85.0, "OMP (Ozark Mtn Poultry)|Cecil": 110.0, "Cecil|OMP (Ozark Mtn Poultry)": 110.0, "OMP (Ozark Mtn Poultry)|Greenwood": 108.0, "Greenwood|OMP (Ozark Mtn Poultry)": 108.0, "OMP (Ozark Mtn Poultry)|Gravette": 33.0, "Gravette|OMP (Ozark Mtn Poultry)": 33.0, "Tyson Berry Street|Kibler Plow Sites and Storage": 67.0, "Kibler Plow Sites and Storage|Tyson Berry Street": 67.0, "Tyson Berry Street|Allens Canning": 22.0, "Allens Canning|Tyson Berry Street": 22.0, "Tyson Berry Street|Hackett": 88.0, "Hackett|Tyson Berry Street": 88.0, "Tyson Berry Street|Nebo": 69.0, "Nebo|Tyson Berry Street": 69.0, "Tyson Berry Street|Highway 59": 68.0, "Highway 59|Tyson Berry Street": 68.0, "Tyson Berry Street|Hydro Ag Mulberry Plow": 72.0, "Hydro Ag Mulberry Plow|Tyson Berry Street": 72.0, "Tyson Berry Street|Cecil": 97.0, "Cecil|Tyson Berry Street": 97.0, "Tyson Berry Street|Greenwood": 96.0, "Greenwood|Tyson Berry Street": 96.0, "Tyson Berry Street|Gravette": 46.0, "Gravette|Tyson Berry Street": 46.0, "Southwest City|South West City Plow": 8.0, "South West City Plow|Southwest City": 8.0, "Southwest City|Kibler Plow Sites and Storage": 113.0, "Kibler Plow Sites and Storage|Southwest City": 113.0, "Southwest City|Allens Canning": 35.0, "Allens Canning|Southwest City": 35.0, "Southwest City|Hackett": 134.0, "Hackett|Southwest City": 134.0, "Southwest City|Nebo": 115.0, "Nebo|Southwest City": 115.0, "Southwest City|Highway 59": 114.0, "Highway 59|Southwest City": 114.0, "Southwest City|Hydro Ag Mulberry Plow": 118.0, "Hydro Ag Mulberry Plow|Southwest City": 118.0, "Southwest City|Cecil": 143.0, "Cecil|Southwest City": 143.0, "Southwest City|Greenwood": 141.0, "Greenwood|Southwest City": 141.0, "Southwest City|Gravette": 9.0, "Gravette|Southwest City": 9.0, "Cobb Vantress (truckwash + hatchery)|Kibler Plow Sites and Storage": 79.0, "Kibler Plow Sites and Storage|Cobb Vantress (truckwash + hatchery)": 79.0, "Cobb Vantress (truckwash + hatchery)|Allens Canning": 5.0, "Allens Canning|Cobb Vantress (truckwash + hatchery)": 5.0, "Cobb Vantress (truckwash + hatchery)|Hackett": 101.0, "Hackett|Cobb Vantress (truckwash + hatchery)": 101.0, "Cobb Vantress (truckwash + hatchery)|Nebo": 82.0, "Nebo|Cobb Vantress (truckwash + hatchery)": 82.0, "Cobb Vantress (truckwash + hatchery)|Highway 59": 81.0, "Highway 59|Cobb Vantress (truckwash + hatchery)": 81.0, "Cobb Vantress (truckwash + hatchery)|Hydro Ag Mulberry Plow": 85.0, "Hydro Ag Mulberry Plow|Cobb Vantress (truckwash + hatchery)": 85.0, "Cobb Vantress (truckwash + hatchery)|Cecil": 110.0, "Cecil|Cobb Vantress (truckwash + hatchery)": 110.0, "Cobb Vantress (truckwash + hatchery)|Greenwood": 108.0, "Greenwood|Cobb Vantress (truckwash + hatchery)": 108.0, "Cobb Vantress (truckwash + hatchery)|Gravette": 25.0, "Gravette|Cobb Vantress (truckwash + hatchery)": 25.0, "Simmons Treats/truckwash/wetpet|Kibler Plow Sites and Storage": 79.0, "Kibler Plow Sites and Storage|Simmons Treats/truckwash/wetpet": 79.0, "Simmons Treats/truckwash/wetpet|Allens Canning": 5.0, "Allens Canning|Simmons Treats/truckwash/wetpet": 5.0, "Simmons Treats/truckwash/wetpet|Hackett": 101.0, "Hackett|Simmons Treats/truckwash/wetpet": 101.0, "Simmons Treats/truckwash/wetpet|Nebo": 82.0, "Nebo|Simmons Treats/truckwash/wetpet": 82.0, "Simmons Treats/truckwash/wetpet|Highway 59": 81.0, "Highway 59|Simmons Treats/truckwash/wetpet": 81.0, "Simmons Treats/truckwash/wetpet|Hydro Ag Mulberry Plow": 85.0, "Hydro Ag Mulberry Plow|Simmons Treats/truckwash/wetpet": 85.0, "Simmons Treats/truckwash/wetpet|Cecil": 110.0, "Cecil|Simmons Treats/truckwash/wetpet": 110.0, "Simmons Treats/truckwash/wetpet|Greenwood": 108.0, "Greenwood|Simmons Treats/truckwash/wetpet": 108.0, "Simmons Treats/truckwash/wetpet|Gravette": 25.0, "Gravette|Simmons Treats/truckwash/wetpet": 25.0, "Simmons Benton County|Kibler Plow Sites and Storage": 89.0, "Kibler Plow Sites and Storage|Simmons Benton County": 89.0, "Simmons Benton County|Allens Canning": 12.0, "Allens Canning|Simmons Benton County": 12.0, "Simmons Benton County|Hackett": 110.0, "Hackett|Simmons Benton County": 110.0, "Simmons Benton County|Nebo": 91.0, "Nebo|Simmons Benton County": 91.0, "Simmons Benton County|Highway 59": 91.0, "Highway 59|Simmons Benton County": 91.0, "Simmons Benton County|Hydro Ag Mulberry Plow": 94.0, "Hydro Ag Mulberry Plow|Simmons Benton County": 94.0, "Simmons Benton County|Cecil": 119.0, "Cecil|Simmons Benton County": 119.0, "Simmons Benton County|Greenwood": 118.0, "Greenwood|Simmons Benton County": 118.0, "Simmons Benton County|Gravette": 20.0, "Gravette|Simmons Benton County": 20.0, "Simmons Feedmill Decatur/Wellness pet|Kibler Plow Sites and Storage": 93.0, "Kibler Plow Sites and Storage|Simmons Feedmill Decatur/Wellness pet": 93.0, "Simmons Feedmill Decatur/Wellness pet|Allens Canning": 15.0, "Allens Canning|Simmons Feedmill Decatur/Wellness pet": 15.0, "Simmons Feedmill Decatur/Wellness pet|Hackett": 112.0, "Hackett|Simmons Feedmill Decatur/Wellness pet": 112.0, "Simmons Feedmill Decatur/Wellness pet|Nebo": 96.0, "Nebo|Simmons Feedmill Decatur/Wellness pet": 96.0, "Simmons Feedmill Decatur/Wellness pet|Highway 59": 94.0, "Highway 59|Simmons Feedmill Decatur/Wellness pet": 94.0, "Simmons Feedmill Decatur/Wellness pet|Hydro Ag Mulberry Plow": 99.0, "Hydro Ag Mulberry Plow|Simmons Feedmill Decatur/Wellness pet": 99.0, "Simmons Feedmill Decatur/Wellness pet|Cecil": 124.0, "Cecil|Simmons Feedmill Decatur/Wellness pet": 124.0, "Simmons Feedmill Decatur/Wellness pet|Greenwood": 122.0, "Greenwood|Simmons Feedmill Decatur/Wellness pet": 122.0, "Simmons Feedmill Decatur/Wellness pet|Gravette": 15.0, "Gravette|Simmons Feedmill Decatur/Wellness pet": 15.0, "Simmons Old Decatur Plant|Kibler Plow Sites and Storage": 90.0, "Kibler Plow Sites and Storage|Simmons Old Decatur Plant": 90.0, "Simmons Old Decatur Plant|Allens Canning": 13.0, "Allens Canning|Simmons Old Decatur Plant": 13.0, "Simmons Old Decatur Plant|Hackett": 113.0, "Hackett|Simmons Old Decatur Plant": 113.0, "Simmons Old Decatur Plant|Nebo": 94.0, "Nebo|Simmons Old Decatur Plant": 94.0, "Simmons Old Decatur Plant|Highway 59": 93.0, "Highway 59|Simmons Old Decatur Plant": 93.0, "Simmons Old Decatur Plant|Hydro Ag Mulberry Plow": 97.0, "Hydro Ag Mulberry Plow|Simmons Old Decatur Plant": 97.0, "Simmons Old Decatur Plant|Cecil": 122.0, "Cecil|Simmons Old Decatur Plant": 122.0, "Simmons Old Decatur Plant|Greenwood": 120.0, "Greenwood|Simmons Old Decatur Plant": 120.0, "Simmons Old Decatur Plant|Gravette": 16.0, "Gravette|Simmons Old Decatur Plant": 16.0, "Mckee Foods|Kibler Plow Sites and Storage": 86.0, "Kibler Plow Sites and Storage|Mckee Foods": 86.0, "Mckee Foods|Allens Canning": 10.0, "Allens Canning|Mckee Foods": 10.0, "Mckee Foods|Hackett": 108.0, "Hackett|Mckee Foods": 108.0, "Mckee Foods|Nebo": 89.0, "Nebo|Mckee Foods": 89.0, "Mckee Foods|Highway 59": 88.0, "Highway 59|Mckee Foods": 88.0, "Mckee Foods|Hydro Ag Mulberry Plow": 92.0, "Hydro Ag Mulberry Plow|Mckee Foods": 92.0, "Mckee Foods|Cecil": 117.0, "Cecil|Mckee Foods": 117.0, "Mckee Foods|Greenwood": 115.0, "Greenwood|Mckee Foods": 115.0, "Mckee Foods|Gravette": 22.0, "Gravette|Mckee Foods": 22.0, "Allens Canning|Kibler Plow Sites and Storage": 79.0, "Kibler Plow Sites and Storage|Allens Canning": 79.0, "Allens Canning|Hackett": 100.0, "Hackett|Allens Canning": 100.0, "Allens Canning|Nebo": 82.0, "Nebo|Allens Canning": 81.0, "Allens Canning|Highway 59": 80.0, "Highway 59|Allens Canning": 80.0, "Allens Canning|Hydro Ag Mulberry Plow": 85.0, "Hydro Ag Mulberry Plow|Allens Canning": 85.0, "Allens Canning|Cecil": 111.0, "Cecil|Allens Canning": 111.0, "Allens Canning|Greenwood": 109.0, "Greenwood|Allens Canning": 109.0, "Allens Canning|Gravette": 26.0, "Gravette|Allens Canning": 26.0, "Lowell|Kibler Plow Sites and Storage": 71.0, "Kibler Plow Sites and Storage|Lowell": 71.0, "Lowell|Hackett": 91.0, "Hackett|Lowell": 91.0, "Lowell|Nebo": 72.0, "Nebo|Lowell": 72.0, "Lowell|Highway 59": 71.0, "Highway 59|Lowell": 71.0, "Lowell|Hydro Ag Mulberry Plow": 75.0, "Hydro Ag Mulberry Plow|Lowell": 75.0, "Lowell|Cecil": 101.0, "Cecil|Lowell": 101.0, "Lowell|Greenwood": 98.0, "Greenwood|Lowell": 98.0, "Lowell|Gravette": 46.0, "Gravette|Lowell": 46.0, "Lowell|Tyson of Rogers": 6.0, "Tyson of Rogers|Lowell": 6.0, "Lowell|Cargill Live Haul Springdale": 5.0, "Cargill Live Haul Springdale|Lowell": 5.0, "Lowell|Cargill Feedmill": 7.0, "Cargill Feedmill|Lowell": 7.0, "Lowell|Tyson Randall Road + Tyson Truck Stop": 5.0, "Tyson Randall Road + Tyson Truck Stop|Lowell": 5.0, "Lowell|Tyson Johnson Road": 9.0, "Tyson Johnson Road|Lowell": 9.0, "Lowell|Southeastern Poultry": 8.0, "Southeastern Poultry|Lowell": 8.0, "Lowell|Tyson Research and Development": 9.0, "Tyson Research and Development|Lowell": 9.0, "Lowell|Chick n Quick": 5.0, "Chick n Quick|Lowell": 5.0, "Lowell|OMP (Ozark Mtn Poultry)": 7.0, "OMP (Ozark Mtn Poultry)|Lowell": 7.0, "Lowell|Tyson Berry Street": 6.0, "Tyson Berry Street|Lowell": 6.0, "Lowell|Southwest City": 46.0, "Southwest City|Lowell": 46.0, "Lowell|Cobb Vantress (truckwash + hatchery)": 26.0, "Cobb Vantress (truckwash + hatchery)|Lowell": 26.0, "Lowell|Simmons Treats/truckwash/wetpet": 29.0, "Simmons Treats/truckwash/wetpet|Lowell": 29.0, "Lowell|Simmons Benton County": 26.0, "Simmons Benton County|Lowell": 26.0, "Lowell|Simmons Feedmill Decatur/Wellness pet": 34.0, "Simmons Feedmill Decatur/Wellness pet|Lowell": 34.0, "Lowell|Simmons Old Decatur Plant": 26.0, "Simmons Old Decatur Plant|Lowell": 26.0, "Lowell|Mckee Foods": 23.0, "Mckee Foods|Lowell": 23.0, "Lowell|Allens Canning": 25.0, "Allens Canning|Lowell": 25.0, "Lowell|Tyson Berryville": 56.0, "Tyson Berryville|Lowell": 51.0, "Lowell|Tyson Green Forest": 67.0, "Tyson Green Forest|Lowell": 67.0, "Lowell|ButterBall Huntsville": 34.0, "ButterBall Huntsville|Lowell": 34.0, "Lowell|Berryville Pit": 49.0, "Berryville Pit|Lowell": 65.0, "Lowell|Green Forest Fracs/ YARD": 65.0, "Green Forest Fracs/ YARD|Lowell": 67.0, "Lowell|Pinnacle Foods in Fayeteville": 19.0, "Pinnacle Foods in Fayeteville|Lowell": 19.0, "Simmons New Plant (Cook Plant)|Hackett": 25.0, "Hackett|Simmons New Plant (Cook Plant)": 25.0, "Simmons New Plant (Cook Plant)|Nebo": 6.0, "Nebo|Simmons New Plant (Cook Plant)": 6.0, "Simmons New Plant (Cook Plant)|Highway 59": 3.0, "Highway 59|Simmons New Plant (Cook Plant)": 3.0, "Simmons New Plant (Cook Plant)|Hydro Ag Mulberry Plow": 23.0, "Hydro Ag Mulberry Plow|Simmons New Plant (Cook Plant)": 23.0, "Simmons New Plant (Cook Plant)|Allens Canning": 78.0, "Allens Canning|Simmons New Plant (Cook Plant)": 78.0, "Simmons New Plant (Cook Plant)|Kibler Plow Sites and Storage": 12.0, "Kibler Plow Sites and Storage|Simmons New Plant (Cook Plant)": 12.0, "Simmons New Plant (Cook Plant)|Cecil Plow": 41.0, "Cecil Plow|Simmons New Plant (Cook Plant)": 41.0, "Simmons New Plant (Cook Plant)|Greenwood": 30.0, "Greenwood|Simmons New Plant (Cook Plant)": 30.0, "Simmons New Plant (Cook Plant)|Paris Bottoms": 51.0, "Paris Bottoms|Simmons New Plant (Cook Plant)": 51.0, "Simmons Old Plant (Main Plant)|Hackett": 25.0, "Hackett|Simmons Old Plant (Main Plant)": 25.0, "Simmons Old Plant (Main Plant)|Nebo": 7.0, "Nebo|Simmons Old Plant (Main Plant)": 7.0, "Simmons Old Plant (Main Plant)|Denali Plow Ozark": 42.0, "Denali Plow Ozark|Simmons Old Plant (Main Plant)": 42.0, "Simmons Old Plant (Main Plant)|Highway 59": 4.0, "Highway 59|Simmons Old Plant (Main Plant)": 4.0, "Simmons Old Plant (Main Plant)|Hydro Ag Mulberry Plow": 24.0, "Hydro Ag Mulberry Plow|Simmons Old Plant (Main Plant)": 24.0, "Simmons Old Plant (Main Plant)|Kibler Plow Sites and Storage": 12.0, "Kibler Plow Sites and Storage|Simmons Old Plant (Main Plant)": 12.0, "Simmons Old Plant (Main Plant)|Allens Canning": 79.0, "Allens Canning|Simmons Old Plant (Main Plant)": 79.0, "Simmons Old Plant (Main Plant)|Cecil Plow": 49.0, "Cecil Plow|Simmons Old Plant (Main Plant)": 49.0, "Simmons Old Plant (Main Plant)|Greenwood": 30.0, "Greenwood|Simmons Old Plant (Main Plant)": 30.0, "Simmons Old Plant (Main Plant)|Paris Bottoms": 52.0, "Paris Bottoms|Simmons Old Plant (Main Plant)": 52.0, "OK Foods Fort Smith|Hackett": 24.0, "Hackett|OK Foods Fort Smith": 24.0, "OK Foods Fort Smith|Nebo": 7.0, "Nebo|OK Foods Fort Smith": 7.0, "OK Foods Fort Smith|Highway 59": 6.0, "Highway 59|OK Foods Fort Smith": 6.0, "OK Foods Fort Smith|Hydro Ag Mulberry Plow": 26.0, "Hydro Ag Mulberry Plow|OK Foods Fort Smith": 26.0, "OK Foods Fort Smith|Kibler Plow Sites and Storage": 15.0, "Kibler Plow Sites and Storage|OK Foods Fort Smith": 15.0, "OK Foods Fort Smith|Allens Canning": 80.0, "Allens Canning|OK Foods Fort Smith": 80.0, "OK Foods Fort Smith|Cecil Plow": 44.0, "Cecil Plow|OK Foods Fort Smith": 44.0, "OK Foods Fort Smith|Greenwood": 31.0, "Greenwood|OK Foods Fort Smith": 31.0, "OK Foods Fort Smith|Paris Bottoms": 53.0, "Paris Bottoms|OK Foods Fort Smith": 53.0, "Mars Pet Foods|Hackett": 18.0, "Hackett|Mars Pet Foods": 18.0, "Mars Pet Foods|Kibler Plow Sites and Storage": 13.0, "Kibler Plow Sites and Storage|Mars Pet Foods": 13.0, "Mars Pet Foods|Nebo": 9.0, "Nebo|Mars Pet Foods": 9.0, "Mars Pet Foods|Highway 59": 9.0, "Highway 59|Mars Pet Foods": 9.0, "Mars Pet Foods|Allens Canning": 88.0, "Allens Canning|Mars Pet Foods": 88.0, "Mars Pet Foods|Hydro Ag Mulberry Plow": 34.0, "Hydro Ag Mulberry Plow|Mars Pet Foods": 34.0, "Mars Pet Foods|Cecil Plow": 28.0, "Cecil Plow|Mars Pet Foods": 28.0, "Mars Pet Foods|Greenwood": 18.0, "Greenwood|Mars Pet Foods": 18.0, "Mars Pet Foods|Paris Bottoms": 43.0, "Paris Bottoms|Mars Pet Foods": 43.0, "Tyson Ft Smith|Hackett": 24.0, "Hackett|Tyson Ft Smith": 24.0, "Tyson Ft Smith|Nebo": 10.0, "Nebo|Tyson Ft Smith": 10.0, "Tyson Ft Smith|Highway 59": 8.0, "Highway 59|Tyson Ft Smith": 8.0, "Tyson Ft Smith|Hydro Ag Mulberry Plow": 28.0, "Hydro Ag Mulberry Plow|Tyson Ft Smith": 28.0, "Tyson Ft Smith|Allens Canning": 82.0, "Allens Canning|Tyson Ft Smith": 82.0, "Tyson Ft Smith|Kibler Plow Sites and Storage": 18.0, "Kibler Plow Sites and Storage|Tyson Ft Smith": 18.0, "Tyson Ft Smith|Cecil Plow": 35.0, "Cecil Plow|Tyson Ft Smith": 35.0, "Tyson Ft Smith|Greenwood": 28.0, "Greenwood|Tyson Ft Smith": 28.0, "Tyson Ft Smith|Paris Bottoms": 52.0, "Paris Bottoms|Tyson Ft Smith": 52.0, "Gerber|Hackett": 24.0, "Hackett|Gerber": 24.0, "Gerber|Nebo": 8.0, "Nebo|Gerber": 8.0, "Gerber|Highway 59": 6.0, "Highway 59|Gerber": 6.0, "Gerber|Hydro Ag Mulberry Plow": 25.0, "Hydro Ag Mulberry Plow|Gerber": 25.0, "Gerber|Natural Dam": 20.0, "Natural Dam|Gerber": 20.0, "Gerber|Allens Canning": 80.0, "Allens Canning|Gerber": 80.0, "Gerber|Kibler Plow Sites and Storage": 14.0, "Kibler Plow Sites and Storage|Gerber": 14.0, "Gerber|Cecil Plow": 44.0, "Cecil Plow|Gerber": 44.0, "Gerber|Greenwood": 31.0, "Greenwood|Gerber": 31.0, "Gerber|Paris Bottoms": 52.0, "Paris Bottoms|Gerber": 52.0, "Tate & Lyle|Hackett": 25.0, "Hackett|Tate & Lyle": 25.0, "Tate & Lyle|Nebo": 5.0, "Nebo|Tate & Lyle": 5.0, "Tate & Lyle|Highway 59": 3.0, "Highway 59|Tate & Lyle": 3.0, "Tate & Lyle|Hydro Ag Mulberry Plow": 22.0, "Hydro Ag Mulberry Plow|Tate & Lyle": 22.0, "Tate & Lyle|Natural Dam": 22.0, "Natural Dam|Tate & Lyle": 22.0, "Tate & Lyle|Allens Canning": 78.0, "Allens Canning|Tate & Lyle": 78.0, "Tate & Lyle|Kibler Plow Sites and Storage": 12.0, "Kibler Plow Sites and Storage|Tate & Lyle": 12.0, "Tate & Lyle|Cecil Plow": 41.0, "Cecil Plow|Tate & Lyle": 41.0, "Tate & Lyle|Greenwood": 32.0, "Greenwood|Tate & Lyle": 32.0, "Tate & Lyle|Paris Bottoms": 49.0, "Paris Bottoms|Tate & Lyle": 49.0, "Planters|Hackett": 15.0, "Hackett|Planters": 15.0, "Planters|Nebo": 12.0, "Nebo|Planters": 12.0, "Planters|Highway 59": 14.0, "Highway 59|Planters": 14.0, "Planters|Hydro Ag Mulberry Plow": 33.0, "Hydro Ag Mulberry Plow|Planters": 33.0, "Planters|Allens Canning": 87.0, "Allens Canning|Planters": 87.0, "Planters|Kibler Plow Sites and Storage": 23.0, "Kibler Plow Sites and Storage|Planters": 23.0, "Planters|Cecil Plow": 39.0, "Cecil Plow|Planters": 39.0, "Planters|Greenwood": 21.0, "Greenwood|Planters": 21.0, "Planters|Paris Bottoms": 48.0, "Paris Bottoms|Planters": 48.0, "Zero Mtn|Hackett": 15.0, "Hackett|Zero Mtn": 15.0, "Zero Mtn|Nebo": 13.0, "Nebo|Zero Mtn": 13.0, "Zero Mtn|Highway 59": 13.0, "Highway 59|Zero Mtn": 13.0, "Zero Mtn|Hydro Ag Mulberry Plow": 32.0, "Hydro Ag Mulberry Plow|Zero Mtn": 32.0, "Zero Mtn|Allens Canning": 87.0, "Allens Canning|Zero Mtn": 87.0, "Zero Mtn|Kibler Plow Sites and Storage": 22.0, "Kibler Plow Sites and Storage|Zero Mtn": 22.0, "Zero Mtn|Cecil Plow": 39.0, "Cecil Plow|Zero Mtn": 39.0, "Zero Mtn|Greenwood": 21.0, "Greenwood|Zero Mtn": 21.0, "Zero Mtn|Paris Bottoms": 48.0, "Paris Bottoms|Zero Mtn": 48.0, "Tyson Waldron|Hackett": 34.0, "Hackett|Tyson Waldron": 34.0, "Tyson Waldron|Nebo": 47.0, "Nebo|Tyson Waldron": 47.0, "Tyson Waldron|Highway 59": 47.0, "Highway 59|Tyson Waldron": 47.0, "Tyson Waldron|Hydro Ag Mulberry Plow": 71.0, "Hydro Ag Mulberry Plow|Tyson Waldron": 71.0, "Tyson Waldron|Allens Canning": 126.0, "Allens Canning|Tyson Waldron": 126.0, "Tyson Waldron|Kibler Plow Sites and Storage": 61.0, "Kibler Plow Sites and Storage|Tyson Waldron": 61.0, "Tyson Waldron|Cecil Plow": 53.0, "Cecil Plow|Tyson Waldron": 53.0, "Tyson Waldron|Greenwood": 28.0, "Greenwood|Tyson Waldron": 28.0, "Tyson Waldron|Paris Bottoms": 25.0, "Paris Bottoms|Tyson Waldron": 25.0, "Hiland Dairy|Hackett": 17.0, "Hackett|Hiland Dairy": 17.0, "Hiland Dairy|Nebo": 11.0, "Nebo|Hiland Dairy": 11.0, "Hiland Dairy|Highway 59": 9.0, "Highway 59|Hiland Dairy": 9.0, "Hiland Dairy|Hydro Ag Mulberry Plow": 29.0, "Hydro Ag Mulberry Plow|Hiland Dairy": 29.0, "Hiland Dairy|Allens Canning": 84.0, "Allens Canning|Hiland Dairy": 84.0, "Hiland Dairy|Kibler Plow Sites and Storage": 18.0, "Kibler Plow Sites and Storage|Hiland Dairy": 18.0, "Hiland Dairy|Cecil Plow": 41.0, "Cecil Plow|Hiland Dairy": 41.0, "Hiland Dairy|Shale Pit": 24.0, "Shale Pit|Hiland Dairy": 24.0, "Hiland Dairy|Possum Hollow Rd": 29.0, "Possum Hollow Rd|Hiland Dairy": 29.0, "Hiland Dairy|The Bull": 27.0, "The Bull|Hiland Dairy": 27.0, "Hiland Dairy|Barton Rd": 28.0, "Barton Rd|Hiland Dairy": 28.0, "Hiland Dairy|Paris Bottoms": 49.0, "Paris Bottoms|Hiland Dairy": 49.0, "Twin Rivers|Hackett": 17.0, "Hackett|Twin Rivers": 17.0, "Twin Rivers|Nebo": 12.0, "Nebo|Twin Rivers": 12.0, "Twin Rivers|Highway 59": 9.0, "Highway 59|Twin Rivers": 9.0, "Twin Rivers|Hydro Ag Mulberry Plow": 29.0, "Hydro Ag Mulberry Plow|Twin Rivers": 29.0, "Twin Rivers|Kibler Plow Sites and Storage": 20.0, "Kibler Plow Sites and Storage|Twin Rivers": 20.0, "Twin Rivers|Allens Canning": 87.0, "Allens Canning|Twin Rivers": 87.0, "Twin Rivers|Cecil Plow": 41.0, "Cecil Plow|Twin Rivers": 41.0, "Twin Rivers|Greenwood": 28.0, "Greenwood|Twin Rivers": 28.0, "Twin Rivers|Paris Bottoms": 50.0, "Paris Bottoms|Twin Rivers": 50.0, "Hiram Walker|Hackett": 14.0, "Hackett|Hiram Walker": 14.0, "Hiram Walker|Nebo": 13.0, "Nebo|Hiram Walker": 13.0, "Hiram Walker|Highway 59": 13.0, "Highway 59|Hiram Walker": 13.0, "Hiram Walker|Hydro Ag Mulberry Plow": 32.0, "Hydro Ag Mulberry Plow|Hiram Walker": 32.0, "Hiram Walker|Kibler Plow Sites and Storage": 21.0, "Kibler Plow Sites and Storage|Hiram Walker": 21.0, "Hiram Walker|Allens Canning": 87.0, "Allens Canning|Hiram Walker": 87.0, "Hiram Walker|Cecil Plow": 37.0, "Cecil Plow|Hiram Walker": 37.0, "Hiram Walker|Greenwood": 28.0, "Greenwood|Hiram Walker": 28.0, "Hiram Walker|Paris Bottoms": 47.0, "Paris Bottoms|Hiram Walker": 47.0, "Moses Plumbing|Hackett": 30.0, "Hackett|Moses Plumbing": 30.0, "Moses Plumbing|Nebo": 10.0, "Nebo|Moses Plumbing": 10.0, "Moses Plumbing|Highway 59": 9.0, "Highway 59|Moses Plumbing": 9.0, "Moses Plumbing|Hydro Ag Mulberry Plow": 19.0, "Hydro Ag Mulberry Plow|Moses Plumbing": 19.0, "Moses Plumbing|Allens Canning": 76.0, "Allens Canning|Moses Plumbing": 76.0, "Moses Plumbing|Kibler Plow Sites and Storage": 6.0, "Kibler Plow Sites and Storage|Moses Plumbing": 6.0, "Moses Plumbing|Cecil Plow": 45.0, "Cecil Plow|Moses Plumbing": 45.0, "Moses Plumbing|Greenwood": 38.0, "Greenwood|Moses Plumbing": 38.0, "Moses Plumbing|Paris Bottoms": 53.0, "Paris Bottoms|Moses Plumbing": 53.0, "West Ark Plumbing|Hackett": 14.0, "Hackett|West Ark Plumbing": 14.0, "West Ark Plumbing|Nebo": 14.0, "Nebo|West Ark Plumbing": 14.0, "West Ark Plumbing|Highway 59": 12.0, "Highway 59|West Ark Plumbing": 12.0, "West Ark Plumbing|Hydro Ag Mulberry Plow": 32.0, "Hydro Ag Mulberry Plow|West Ark Plumbing": 32.0, "West Ark Plumbing|Kibler Plow Sites and Storage": 22.0, "Kibler Plow Sites and Storage|West Ark Plumbing": 22.0, "West Ark Plumbing|Allens Canning": 86.0, "Allens Canning|West Ark Plumbing": 86.0, "West Ark Plumbing|Cecil Plow": 37.0, "Cecil Plow|West Ark Plumbing": 37.0, "West Ark Plumbing|Greenwood": 22.0, "Greenwood|West Ark Plumbing": 22.0, "West Ark Plumbing|Paris Bottoms": 47.0, "Paris Bottoms|West Ark Plumbing": 47.0, "Pro Rooter|Hackett": 19.0, "Hackett|Pro Rooter": 19.0, "Pro Rooter|Nebo": 10.0, "Nebo|Pro Rooter": 10.0, "Pro Rooter|Highway 59": 17.0, "Highway 59|Pro Rooter": 17.0, "Pro Rooter|Allens Canning": 91.0, "Allens Canning|Pro Rooter": 91.0, "Pro Rooter|Hydro Ag Mulberry Plow": 36.0, "Hydro Ag Mulberry Plow|Pro Rooter": 36.0, "Pro Rooter|Kibler Plow Sites and Storage": 26.0, "Kibler Plow Sites and Storage|Pro Rooter": 26.0, "Pro Rooter|Cecil Plow": 41.0, "Cecil Plow|Pro Rooter": 41.0, "Pro Rooter|Greenwood": 25.0, "Greenwood|Pro Rooter": 25.0, "Pro Rooter|Paris Bottoms": 52.0, "Paris Bottoms|Pro Rooter": 52.0, "Drain Masters|Hackett": 15.0, "Hackett|Drain Masters": 15.0, "Drain Masters|Nebo": 20.0, "Nebo|Drain Masters": 20.0, "Drain Masters|Highway 59": 19.0, "Highway 59|Drain Masters": 19.0, "Drain Masters|Allens Canning": 93.0, "Allens Canning|Drain Masters": 93.0, "Drain Masters|Hydro Ag Mulberry Plow": 39.0, "Hydro Ag Mulberry Plow|Drain Masters": 39.0, "Drain Masters|Kibler Plow Sites and Storage": 28.0, "Kibler Plow Sites and Storage|Drain Masters": 28.0, "Drain Masters|Cecil Plow": 43.0, "Cecil Plow|Drain Masters": 43.0, "Drain Masters|Greenwood": 27.0, "Greenwood|Drain Masters": 27.0, "Butterball Ozark|Hackett": 58.0, "Hackett|Butterball Ozark": 58.0, "Butterball Ozark|Nebo": 40.0, "Nebo|Butterball Ozark": 40.0, "Butterball Ozark|Highway 59": 39.0, "Highway 59|Butterball Ozark": 39.0, "Butterball Ozark|Hydro Ag Mulberry Plow": 15.0, "Hydro Ag Mulberry Plow|Butterball Ozark": 15.0, "Butterball Ozark|Allens Canning": 97.0, "Allens Canning|Butterball Ozark": 97.0, "Butterball Ozark|Kibler Plow Sites and Storage": 36.0, "Kibler Plow Sites and Storage|Butterball Ozark": 36.0, "Butterball Ozark|Cecil Plow": 14.0, "Cecil Plow|Butterball Ozark": 14.0, "Butterball Ozark|Greenwood": 66.0, "Greenwood|Butterball Ozark": 66.0, "Keith Smith|Hackett": 40.0, "Hackett|Keith Smith": 40.0, "Keith Smith|Nebo": 19.0, "Nebo|Keith Smith": 19.0, "Keith Smith|Highway 59": 18.0, "Highway 59|Keith Smith": 18.0, "Keith Smith|Allens Canning": 53.0, "Allens Canning|Keith Smith": 53.0, "Keith Smith|Hydro Ag Mulberry Plow": 35.0, "Hydro Ag Mulberry Plow|Keith Smith": 35.0, "Keith Smith|Kibler Plow Sites and Storage": 30.0, "Kibler Plow Sites and Storage|Keith Smith": 30.0, "Keith Smith|Cecil Plow": 59.0, "Cecil Plow|Keith Smith": 59.0, "Keith Smith|Greenwood": 47.0, "Greenwood|Keith Smith": 47.0, "Nebo|Hackett": 25.0, "Hackett|Nebo": 25.0, "Nebo|Highway 59": 1.0, "Highway 59|Nebo": 1.0, "Nebo|Hydro Ag Mulberry Plow": 27.0, "Hydro Ag Mulberry Plow|Nebo": 27.0, "Nebo|Kibler Plow Sites and Storage": 16.0, "Kibler Plow Sites and Storage|Nebo": 16.0, "Nebo|Cecil Plow": 37.0, "Cecil Plow|Nebo": 37.0, "Nebo|Greenwood": 29.0, "Greenwood|Nebo": 29.0, "Kibler Storage Tanks|Hackett": 34.0, "Hackett|Kibler Storage Tanks": 34.0, "Kibler Storage Tanks|Nebo": 10.0, "Nebo|Kibler Storage Tanks": 10.0, "Kibler Storage Tanks|Highway 59": 14.0, "Highway 59|Kibler Storage Tanks": 14.0, "Kibler Storage Tanks|Hydro Ag Mulberry Plow": 22.0, "Hydro Ag Mulberry Plow|Kibler Storage Tanks": 22.0, "Kibler Storage Tanks|Allens Canning": 80.0, "Allens Canning|Kibler Storage Tanks": 80.0, "Kibler Storage Tanks|Kibler Plow Sites and Storage": 1.0, "Kibler Plow Sites and Storage|Kibler Storage Tanks": 1.0, "Kibler Storage Tanks|Cecil Plow": 52.0, "Cecil Plow|Kibler Storage Tanks": 52.0, "Kibler Storage Tanks|Greenwood": 42.0, "Greenwood|Kibler Storage Tanks": 42.0, "Van Buren Yard|Lowell": 66.0, "Lowell|Van Buren Yard": 66.0, "Van Buren Yard|Simmons New Plant (Cook Plant)": 4.0, "Simmons New Plant (Cook Plant)|Van Buren Yard": 4.0, "Van Buren Yard|Simmons Old Plant (Main Plant)": 4.0, "Simmons Old Plant (Main Plant)|Van Buren Yard": 4.0, "Van Buren Yard|OK Foods Fort Smith": 6.0, "OK Foods Fort Smith|Van Buren Yard": 6.0, "Van Buren Yard|Mars Pet Foods": 15.0, "Mars Pet Foods|Van Buren Yard": 15.0, "Van Buren Yard|Tyson Ft Smith": 8.0, "Tyson Ft Smith|Van Buren Yard": 8.0, "Van Buren Yard|Gerber": 6.0, "Gerber|Van Buren Yard": 6.0, "Van Buren Yard|Tate & Lyle": 4.0, "Tate & Lyle|Van Buren Yard": 4.0, "Van Buren Yard|Planters": 15.0, "Planters|Van Buren Yard": 15.0, "Van Buren Yard|Zero Mtn": 15.0, "Zero Mtn|Van Buren Yard": 15.0, "Van Buren Yard|Highway 59": 6.0, "Highway 59|Van Buren Yard": 6.0, "Van Buren Yard|Tyson Waldron": 53.0, "Tyson Waldron|Van Buren Yard": 53.0, "Van Buren Yard|Hiland Dairy": 10.0, "Hiland Dairy|Van Buren Yard": 10.0, "Van Buren Yard|Twin Rivers": 11.0, "Twin Rivers|Van Buren Yard": 11.0, "Van Buren Yard|Hiram Walker": 14.0, "Hiram Walker|Van Buren Yard": 14.0, "Van Buren Yard|Moses Plumbing": 5.0, "Moses Plumbing|Van Buren Yard": 5.0, "Van Buren Yard|West Ark Plumbing": 13.0, "West Ark Plumbing|Van Buren Yard": 13.0, "Van Buren Yard|Pro Rooter": 18.0, "Pro Rooter|Van Buren Yard": 18.0, "Van Buren Yard|Drain Masters": 19.0, "Drain Masters|Van Buren Yard": 19.0, "Van Buren Yard|Butterball Ozark": 34.0, "Butterball Ozark|Van Buren Yard": 34.0, "Van Buren Yard|Keith Smith": 17.0, "Keith Smith|Van Buren Yard": 17.0, "Van Buren Yard|Nebo": 8.0, "Nebo|Van Buren Yard": 8.0, "Van Buren Yard|Hackett": 28.0, "Hackett|Van Buren Yard": 28.0, "Van Buren Yard|Kibler Storage Tanks": 10.0, "Kibler Storage Tanks|Van Buren Yard": 10.0, "Van Buren Yard|Tyson of Rogers": 73.0, "Tyson of Rogers|Van Buren Yard": 73.0, "Van Buren Yard|Cargill Live Haul Springdale": 65.0, "Cargill Live Haul Springdale|Van Buren Yard": 65.0, "Van Buren Yard|Cargill Feedmill": 59.0, "Cargill Feedmill|Van Buren Yard": 59.0, "Van Buren Yard|Tyson Randall Road + Tyson Truck Stop": 64.0, "Tyson Randall Road + Tyson Truck Stop|Van Buren Yard": 64.0, "Van Buren Yard|Tyson Johnson Road": 58.0, "Tyson Johnson Road|Van Buren Yard": 58.0, "Van Buren Yard|Southeastern Poultry": 76.0, "Southeastern Poultry|Van Buren Yard": 76.0, "Tyson Research and Development|Chick n Quick": 71.0, "Chick n Quick|Tyson Research and Development": 71.0, "Tyson Research and Development|OMP (Ozark Mtn Poultry)": 77.0, "OMP (Ozark Mtn Poultry)|Tyson Research and Development": 77.0, "Tyson Research and Development|Tyson Berry Street": 64.0, "Tyson Berry Street|Tyson Research and Development": 64.0, "Tyson Research and Development|Southwest City": 110.0, "Southwest City|Tyson Research and Development": 110.0, "Tyson Research and Development|Cobb Vantress (truckwash + hatchery)": 77.0, "Cobb Vantress (truckwash + hatchery)|Tyson Research and Development": 77.0, "Tyson Research and Development|Simmons Treats/truckwash/wetpet": 64.0, "Simmons Treats/truckwash/wetpet|Tyson Research and Development": 64.0, "Tyson Research and Development|Simmons Benton County": 87.0, "Simmons Benton County|Tyson Research and Development": 87.0, "Tyson Research and Development|Simmons Feedmill Decatur/Wellness pet": 98.0, "Simmons Feedmill Decatur/Wellness pet|Tyson Research and Development": 98.0, "Tyson Research and Development|Simmons Old Decatur Plant": 89.0, "Simmons Old Decatur Plant|Tyson Research and Development": 89.0, "Tyson Research and Development|Mckee Foods": 84.0, "Mckee Foods|Tyson Research and Development": 84.0, "Tyson Research and Development|Tyson Berryville": 110.0, "Tyson Berryville|Tyson Research and Development": 110.0, "Tyson Research and Development|Tyson Green Forest": 113.0, "Tyson Green Forest|Tyson Research and Development": 113.0, "Tyson Research and Development|ButterBall Huntsville": 81.0, "ButterBall Huntsville|Tyson Research and Development": 81.0, "Tyson Research and Development|Berryville Pit": 107.0, "Berryville Pit|Tyson Research and Development": 107.0, "Tyson Research and Development|Green Forest Fracs/ YARD": 112.0, "Green Forest Fracs/ YARD|Tyson Research and Development": 112.0, "Tyson Foods Bergman Feed Mill|Tyson Berryville": 37.0, "Tyson Berryville|Tyson Foods Bergman Feed Mill": 37.0, "Tyson Berryville|Shell Knob": 21.0, "Shell Knob|Tyson Berryville": 21.0, "Tyson Berryville|Harrison": 36.0, "Harrison|Tyson Berryville": 36.0, "Tyson Berryville|ROARK": 41.0, "ROARK|Tyson Berryville": 41.0, "Tyson Berryville|Hindsville": 40.0, "Hindsville|Tyson Berryville": 40.0, "Tyson Berryville|Hackett": 134.0, "Hackett|Tyson Berryville": 134.0, "Tyson Berryville|Durham": 59.0, "Durham|Tyson Berryville": 59.0, "Tyson Berryville|Gravette": 76.0, "Gravette|Tyson Berryville": 76.0, "Tyson Berryville|Allens Canning": 71.0, "Allens Canning|Tyson Berryville": 71.0, "Tyson Berryville|Van Buren Yard": 111.0, "Van Buren Yard|Tyson Berryville": 111.0, "Tyson Berryville|Kibler Plow Sites and Storage": 112.0, "Kibler Plow Sites and Storage|Tyson Berryville": 112.0, "Tyson Berryville|Highway 59": 114.0, "Highway 59|Tyson Berryville": 114.0, "Tyson Berryville|Nebo": 114.0, "Nebo|Tyson Berryville": 114.0, "Tyson Berryville|Wesley": 45.0, "Wesley|Tyson Berryville": 45.0, "Tyson Berryville|Berryville Pit": 2.6, "Berryville Pit|Tyson Berryville": 2.6, "Tyson Berryville|Green Forest Fracs/ YARD": 8.0, "Green Forest Fracs/ YARD|Tyson Berryville": 8.0, "Tyson Green Forest|Shell Knob": 30.0, "Shell Knob|Tyson Green Forest": 30.0, "Tyson Green Forest|Harrison": 27.0, "Harrison|Tyson Green Forest": 27.0, "Tyson Green Forest|ROARK": 51.0, "ROARK|Tyson Green Forest": 51.0, "Tyson Green Forest|Hackett": 137.0, "Hackett|Tyson Green Forest": 137.0, "Tyson Green Forest|Hindsville": 43.0, "Hindsville|Tyson Green Forest": 43.0, "Tyson Green Forest|Durham": 62.0, "Durham|Tyson Green Forest": 62.0, "Tyson Green Forest|Gravette": 85.0, "Gravette|Tyson Green Forest": 85.0, "Tyson Green Forest|Allens Canning": 81.0, "Allens Canning|Tyson Green Forest": 81.0, "Tyson Green Forest|Van Buren Yard": 114.0, "Van Buren Yard|Tyson Green Forest": 114.0, "Tyson Green Forest|Kibler Plow Sites and Storage": 116.0, "Kibler Plow Sites and Storage|Tyson Green Forest": 116.0, "Tyson Green Forest|Highway 59": 118.0, "Highway 59|Tyson Green Forest": 118.0, "Tyson Green Forest|Nebo": 119.0, "Nebo|Tyson Green Forest": 119.0, "Tyson Green Forest|Wesley": 48.0, "Wesley|Tyson Green Forest": 48.0, "Tyson Green Forest|Berryville Pit": 12.0, "Berryville Pit|Tyson Green Forest": 12.0, "Tyson Green Forest|Green Forest Fracs/ YARD": 1.0, "Green Forest Fracs/ YARD|Tyson Green Forest": 1.0, "ButterBall Huntsville|Hindsville": 11.0, "Hindsville|ButterBall Huntsville": 11.0, "ButterBall Huntsville|Hackett": 103.0, "Hackett|ButterBall Huntsville": 103.0, "ButterBall Huntsville|Durham": 28.0, "Durham|ButterBall Huntsville": 28.0, "ButterBall Huntsville|Gravette": 74.0, "Gravette|ButterBall Huntsville": 74.0, "ButterBall Huntsville|Allens Canning": 48.0, "Allens Canning|ButterBall Huntsville": 48.0, "ButterBall Huntsville|Van Buren Yard": 80.0, "Van Buren Yard|ButterBall Huntsville": 80.0, "ButterBall Huntsville|Kibler Plow Sites and Storage": 83.0, "Kibler Plow Sites and Storage|ButterBall Huntsville": 83.0, "ButterBall Huntsville|Highway 59": 84.0, "Highway 59|ButterBall Huntsville": 84.0, "ButterBall Huntsville|Nebo": 83.0, "Nebo|ButterBall Huntsville": 83.0, "ButterBall Huntsville|Wesley": 14.0, "Wesley|ButterBall Huntsville": 14.0, "Green Forest Fracs/ YARD|Hindsville": 42.0, "Hindsville|Green Forest Fracs/ YARD": 42.0, "Green Forest Fracs/ YARD|Hackett": 136.0, "Hackett|Green Forest Fracs/ YARD": 136.0, "Green Forest Fracs/ YARD|Durham": 61.0, "Durham|Green Forest Fracs/ YARD": 61.0, "Green Forest Fracs/ YARD|Gravette": 107.0, "Gravette|Green Forest Fracs/ YARD": 107.0, "Green Forest Fracs/ YARD|Van Buren Yard": 111.0, "Van Buren Yard|Green Forest Fracs/ YARD": 111.0, "Green Forest Fracs/ YARD|Kibler Plow Sites and Storage": 116.0, "Kibler Plow Sites and Storage|Green Forest Fracs/ YARD": 116.0, "Green Forest Fracs/ YARD|Highway 59": 116.0, "Highway 59|Green Forest Fracs/ YARD": 116.0, "Green Forest Fracs/ YARD|Wesley": 47.0, "Wesley|Green Forest Fracs/ YARD": 47.0, "Green Forest Fracs/ YARD|Nebo": 116.0, "Nebo|Green Forest Fracs/ YARD": 116.0, "Berryville Pit|Hindsville": 42.0, "Hindsville|Berryville Pit": 42.0, "Berryville Pit|Durham": 58.0, "Durham|Berryville Pit": 58.0, "Berryville Pit|Gravette": 105.0, "Gravette|Berryville Pit": 105.0, "Berryville Pit|Van Buren Yard": 108.0, "Van Buren Yard|Berryville Pit": 108.0, "Berryville Pit|Kibler Plow Sites and Storage": 110.0, "Kibler Plow Sites and Storage|Berryville Pit": 110.0, "Berryville Pit|Highway 59": 111.0, "Highway 59|Berryville Pit": 111.0, "Berryville Pit|Wesley": 47.0, "Wesley|Berryville Pit": 47.0, "Berryville Pit|Nebo": 113.0, "Nebo|Berryville Pit": 113.0, "Shell Knob|Hindsville": 58.0, "Hindsville|Shell Knob": 58.0, "Shell Knob|Durham": 80.0, "Durham|Shell Knob": 80.0, "Shell Knob|Gravette": 79.0, "Gravette|Shell Knob": 79.0, "Shell Knob|Lowell": 54.0, "Lowell|Shell Knob": 54.0, "Shell Knob|Van Buren Yard": 125.0, "Van Buren Yard|Shell Knob": 125.0, "Shell Knob|Kibler Plow Sites and Storage": 127.0, "Kibler Plow Sites and Storage|Shell Knob": 127.0, "Shell Knob|Highway 59": 128.0, "Highway 59|Shell Knob": 128.0, "Shell Knob|Wesley": 66.0, "Wesley|Shell Knob": 66.0, "Shell Knob|Nebo": 130.0, "Nebo|Shell Knob": 130.0, "Harrison|Hindsville": 61.0, "Hindsville|Harrison": 61.0, "Harrison|Durham": 80.0, "Durham|Harrison": 80.0, "Harrison|Gravette": 120.0, "Gravette|Harrison": 120.0, "Harrison|Lowell": 84.0, "Lowell|Harrison": 84.0, "Harrison|Van Buren Yard": 132.0, "Van Buren Yard|Harrison": 132.0, "Harrison|Kibler Plow Sites and Storage": 135.0, "Kibler Plow Sites and Storage|Harrison": 135.0, "Harrison|Highway 59": 135.0, "Highway 59|Harrison": 135.0, "Harrison|Wesley": 66.0, "Wesley|Harrison": 66.0, "Harrison|Nebo": 137.0, "Nebo|Harrison": 137.0, "ROARK|Hindsville": 64.0, "Hindsville|ROARK": 64.0, "ROARK|Durham": 80.0, "Durham|ROARK": 80.0, "ROARK|Gravette": 60.0, "Gravette|ROARK": 60.0, "ROARK|Lowell": 42.0, "Lowell|ROARK": 42.0, "ROARK|Van Buren Yard": 112.0, "Van Buren Yard|ROARK": 112.0, "ROARK|Kibler Plow Sites and Storage": 115.0, "Kibler Plow Sites and Storage|ROARK": 115.0, "ROARK|Highway 59": 116.0, "Highway 59|ROARK": 116.0, "ROARK|Wesley": 74.0, "Wesley|ROARK": 74.0, "ROARK|Nebo": 118.0, "Nebo|ROARK": 118.0, "Advanced Micro|Kibler Plow Sites and Storage": 142.0, "Kibler Plow Sites and Storage|Advanced Micro": 142.0, "Advanced Micro|Allens Canning": 102.0, "Allens Canning|Advanced Micro": 102.0, "Advanced Micro|Hackett": 143.0, "Hackett|Advanced Micro": 143.0, "Advanced Micro|Nebo": 138.0, "Nebo|Advanced Micro": 138.0, "Advanced Micro|Highway 59": 136.0, "Highway 59|Advanced Micro": 136.0, "Advanced Micro|Hydro Ag Mulberry Plow": 151.0, "Hydro Ag Mulberry Plow|Advanced Micro": 151.0, "Advanced Micro|Cecil": 168.0, "Cecil|Advanced Micro": 168.0, "Advanced Micro|Greenwood": 151.0, "Greenwood|Advanced Micro": 151.0, "Advanced Micro|Gravette": 109.0, "Gravette|Advanced Micro": 109.0, "Bluebell|Kibler Plow Sites and Storage": 115.0, "Kibler Plow Sites and Storage|Bluebell": 115.0, "Bluebell|Allens Canning": 85.0, "Allens Canning|Bluebell": 85.0, "Bluebell|Hackett": 116.0, "Hackett|Bluebell": 116.0, "Bluebell|Nebo": 111.0, "Nebo|Bluebell": 111.0, "Bluebell|Highway 59": 109.0, "Highway 59|Bluebell": 109.0, "Bluebell|Hydro Ag Mulberry Plow": 124.0, "Hydro Ag Mulberry Plow|Bluebell": 124.0, "Bluebell|Cecil": 141.0, "Cecil|Bluebell": 141.0, "Bluebell|Greenwood": 124.0, "Greenwood|Bluebell": 124.0, "Bluebell|Gravette": 109.0, "Gravette|Bluebell": 109.0, "Bakey Feeds|Kibler Plow Sites and Storage": 72.0, "Kibler Plow Sites and Storage|Bakey Feeds": 72.0, "Bakey Feeds|Allens Canning": 15.0, "Allens Canning|Bakey Feeds": 15.0, "Bakey Feeds|Hackett": 86.0, "Hackett|Bakey Feeds": 86.0, "Bakey Feeds|Nebo": 65.0, "Nebo|Bakey Feeds": 65.0, "Bakey Feeds|Highway 59": 64.0, "Highway 59|Bakey Feeds": 64.0, "Bakey Feeds|Hydro Ag Mulberry Plow": 85.0, "Hydro Ag Mulberry Plow|Bakey Feeds": 85.0, "Bakey Feeds|Cecil": 110.0, "Cecil|Bakey Feeds": 110.0, "Bakey Feeds|Greenwood": 94.0, "Greenwood|Bakey Feeds": 94.0, "Bakey Feeds|Gravette": 28.0, "Gravette|Bakey Feeds": 28.0, "Schwanns|Hackett": 66.0, "Hackett|Schwanns": 66.0, "Schwanns|Allens Canning": 38.0, "Allens Canning|Schwanns": 38.0, "Schwanns|Nebo": 48.0, "Nebo|Schwanns": 48.0, "Schwanns|Kibler Plow Sites and Storage": 53.0, "Kibler Plow Sites and Storage|Schwanns": 52.0, "Schwanns|Highway 59": 47.0, "Highway 59|Schwanns": 47.0, "Schwanns|Hydro Ag Mulberry Plow": 61.0, "Hydro Ag Mulberry Plow|Schwanns": 61.0, "Schwanns|Cecil Plow": 85.0, "Cecil Plow|Schwanns": 85.0, "Schwanns|Greenwood": 73.0, "Greenwood|Schwanns": 73.0, "OK Foods Heavener|Hackett": 34.0, "Hackett|OK Foods Heavener": 34.0, "OK Foods Heavener|Nebo": 50.0, "Nebo|OK Foods Heavener": 50.0, "OK Foods Heavener|Highway 59": 49.0, "Highway 59|OK Foods Heavener": 49.0, "OK Foods Heavener|Hydro Ag Mulberry Plow": 69.0, "Hydro Ag Mulberry Plow|OK Foods Heavener": 69.0, "OK Foods Heavener|Kibler Plow Sites and Storage": 56.0, "Kibler Plow Sites and Storage|OK Foods Heavener": 59.0, "OK Foods Heavener|Cecil Plow": 74.0, "Cecil Plow|OK Foods Heavener": 74.0, "OK Foods Heavener|Greenwood": 48.0, "Greenwood|OK Foods Heavener": 48.0, "OK Foods Heavener|Paris Bottoms": 59.0, "Paris Bottoms|OK Foods Heavener": 59.0, "OK Foods Heavener|Denali Plow Ozark": 86.0, "Denali Plow Ozark|OK Foods Heavener": 86.0, "OK Foods Heavener|Allen Gas Station": 22.0, "Allen Gas Station|OK Foods Heavener": 22.0, "OK Foods Heavener|Allens Canning": 123.0, "Allens Canning|OK Foods Heavener": 123.0};
+const STORAGE_KEY = "jb-hunt-denali-tracker-v1";
+
+const tripList = document.getElementById("tripList");
+const payRateInput = document.getElementById("payRate");
+const tripDateInput = document.getElementById("tripDate");
+const addStopBtn = document.getElementById("addStopBtn");
+const resetBtn = document.getElementById("resetBtn");
+
+const totalMilesEl = document.getElementById("totalMiles");
+const totalPaidStopsEl = document.getElementById("totalPaidStops");
+const milesPayEl = document.getElementById("milesPay");
+const loadPayEl = document.getElementById("loadPay");
+const totalPayEl = document.getElementById("totalPay");
+
+function currency(n) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
+}
+
+function keyFor(a, b) {
+  return `${(a || "").trim()}|${(b || "").trim()}`;
+}
+
+function getMiles(prev, curr) {
+  if (!prev || !curr) return "";
+  const exact = ROUTES[keyFor(prev, curr)];
+  if (typeof exact !== "undefined") return exact;
+  const reverse = ROUTES[keyFor(curr, prev)];
+  if (typeof reverse !== "undefined") return reverse;
+  return null;
+}
+
+function saveState() {
+  const stops = [...document.querySelectorAll(".stop")].map(stop => ({
+    location: stop.querySelector(".location-input").value.trim(),
+    paid: stop.querySelector(".paid-checkbox").checked
+  }));
+  const state = {
+    payRate: payRateInput.value,
+    tripDate: tripDateInput.value,
+    stops
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function createStopRow(data = { location: "", paid: false }) {
+  const index = tripList.children.length + 1;
+  const card = document.createElement("section");
+  card.className = "panel stop";
+  card.innerHTML = `
+    <div class="stop-top">
+      <div class="stop-num">Stop <span class="num">${index}</span></div>
+      <button type="button" class="remove">Remove</button>
+    </div>
+    <input class="location-input" list="location-options" placeholder="Start typing a location..." autocomplete="off" />
+    <div class="row">
+      <label class="checkbox-wrap">
+        <input type="checkbox" class="paid-checkbox" />
+        <span>Load/Unload ($37)</span>
+      </label>
+      <div class="stats">
+        <div class="stat">
+          <div class="label">Miles from previous</div>
+          <div class="value miles-value">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Stop pay</div>
+          <div class="value stop-pay-value">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="missing">Route not found in the mileage table for this stop pair.</div>
+  `;
+  card.querySelector(".location-input").value = data.location || "";
+  card.querySelector(".paid-checkbox").checked = !!data.paid;
+
+  card.querySelector(".location-input").addEventListener("input", () => {
+    recalc();
+    maybeGrow();
+  });
+  card.querySelector(".paid-checkbox").addEventListener("change", recalc);
+  card.querySelector(".remove").addEventListener("click", () => {
+    card.remove();
+    renumberStops();
+    ensureOneBlankAtEnd();
+    recalc();
+  });
+  return card;
+}
+
+function renumberStops() {
+  [...tripList.children].forEach((card, idx) => {
+    card.querySelector(".num").textContent = idx + 1;
+  });
+}
+
+function ensureOneBlankAtEnd() {
+  const cards = [...tripList.children];
+  if (!cards.length) {
+    tripList.appendChild(createStopRow());
+    tripList.appendChild(createStopRow());
+    renumberStops();
+    return;
+  }
+  const last = cards[cards.length - 1];
+  const lastValue = last.querySelector(".location-input").value.trim();
+  if (lastValue !== "") {
+    tripList.appendChild(createStopRow());
+    renumberStops();
+  }
+  // Trim extra empty rows at end, keep exactly one
+  const updated = [...tripList.children];
+  let trailingEmpty = 0;
+  for (let i = updated.length - 1; i >= 0; i--) {
+    const v = updated[i].querySelector(".location-input").value.trim();
+    if (v === "") trailingEmpty++;
+    else break;
+  }
+  while (trailingEmpty > 1) {
+    tripList.lastElementChild.remove();
+    trailingEmpty--;
+  }
+  if (tripList.children.length < 2) {
+    tripList.appendChild(createStopRow());
+  }
+  renumberStops();
+}
+
+function maybeGrow() {
+  ensureOneBlankAtEnd();
+  saveState();
+}
+
+function recalc() {
+  const cards = [...tripList.children];
+  let totalMiles = 0;
+  let totalPaidStops = 0;
+  let totalLoadPay = 0;
+  const payRate = parseFloat(payRateInput.value) || 0;
+
+  cards.forEach((card, idx) => {
+    const location = card.querySelector(".location-input").value.trim();
+    const prevLocation = idx > 0 ? cards[idx - 1].querySelector(".location-input").value.trim() : "";
+    const milesBox = card.querySelector(".miles-value");
+    const stopPayBox = card.querySelector(".stop-pay-value");
+    const paid = card.querySelector(".paid-checkbox").checked;
+
+    card.classList.remove("missing-route");
+
+    let milesDisplay = "—";
+    if (idx === 0 || !location) {
+      milesDisplay = "—";
+    } else if (!prevLocation) {
+      milesDisplay = "—";
+    } else {
+      const miles = getMiles(prevLocation, location);
+      if (miles === null) {
+        milesDisplay = "Missing";
+        card.classList.add("missing-route");
+      } else {
+        totalMiles += Number(miles);
+        milesDisplay = String(Number(miles));
+      }
+    }
+
+    if (paid && location) {
+      totalPaidStops += 1;
+      totalLoadPay += LOAD_PAY;
+      stopPayBox.textContent = currency(LOAD_PAY);
+    } else {
+      stopPayBox.textContent = "—";
+    }
+    milesBox.textContent = milesDisplay;
+  });
+
+  const milesPay = totalMiles * payRate;
+  totalMilesEl.textContent = String(totalMiles);
+  totalPaidStopsEl.textContent = String(totalPaidStops);
+  milesPayEl.textContent = currency(milesPay);
+  loadPayEl.textContent = currency(totalLoadPay);
+  totalPayEl.textContent = currency(milesPay + totalLoadPay);
+
+  saveState();
+}
+
+function resetTrip() {
+  localStorage.removeItem(STORAGE_KEY);
+  tripList.innerHTML = "";
+  tripDateInput.value = new Date().toISOString().slice(0,10);
+  payRateInput.value = "";
+  tripList.appendChild(createStopRow());
+  tripList.appendChild(createStopRow());
+  renumberStops();
+  recalc();
+}
+
+function boot() {
+  const datalist = document.createElement("datalist");
+  datalist.id = "location-options";
+  LOCATIONS.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    datalist.appendChild(opt);
+  });
+  document.body.appendChild(datalist);
+
+  const saved = loadState();
+  tripDateInput.value = saved?.tripDate || new Date().toISOString().slice(0,10);
+  payRateInput.value = saved?.payRate || "";
+
+  if (saved?.stops?.length) {
+    saved.stops.forEach(stop => tripList.appendChild(createStopRow(stop)));
+  } else {
+    tripList.appendChild(createStopRow());
+    tripList.appendChild(createStopRow());
+  }
+  ensureOneBlankAtEnd();
+  renumberStops();
+  recalc();
+
+  function handleAddStop(e) {
+    if (e) e.preventDefault();
+    tripList.appendChild(createStopRow());
+    renumberStops();
+    recalc();
+    const input = tripList.lastElementChild.querySelector('.location-input');
+    if (input) input.focus();
+  }
+
+  ['click','touchend'].forEach(evt => addStopBtn.addEventListener(evt, handleAddStop, {passive:false}));
+  ['click','touchend'].forEach(evt => resetBtn.addEventListener(evt, function(e){ e.preventDefault(); resetTrip(); }, {passive:false}));
+  payRateInput.addEventListener("input", recalc);
+  tripDateInput.addEventListener("input", saveState);
+}
+
+boot();
+</script>
+</body>
+</html>
