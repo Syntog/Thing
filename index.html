@@ -1,445 +1,1201 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>JB Hunt Denali Mileage Tracker</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JB Hunt Denali Tracker v4</title>
 <style>
   :root {
-    --bg: #0b1220;
-    --panel: #111a2c;
-    --panel-2: #17233a;
-    --text: #eef4ff;
-    --muted: #9eb0d0;
-    --line: #28405f;
-    --accent: #4da3ff;
-    --accent-2: #7bc1ff;
-    --danger: #ff6b6b;
-    --ok: #36c27a;
-    --warn-bg: rgba(255,107,107,.12);
-    --warn-border: rgba(255,107,107,.45);
-    --shadow: 0 10px 30px rgba(0,0,0,.28);
+    --bg: #0b1320;
+    --panel: #111b2e;
+    --panel-2: #16243c;
+    --muted: #9db0cf;
+    --text: #f3f7ff;
+    --accent: #63a4ff;
+    --accent-2: #8ec5ff;
+    --danger: #ff7373;
+    --warning: #ffcb6b;
+    --good: #8ee59b;
+    --border: rgba(255,255,255,.12);
+    --shadow: 0 14px 30px rgba(0,0,0,.35);
     --radius: 18px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --footer-h: 152px;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: linear-gradient(180deg,#0a1020 0%, #0e1730 100%); color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
-  body { min-height: 100vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 220px; }
-  .app { max-width: 760px; margin: 0 auto; padding: env(safe-area-inset-top) 14px calc(210px + env(safe-area-inset-bottom)) 14px; }
-  .header { position: sticky; top: 0; z-index: 30; backdrop-filter: blur(12px); background: rgba(10,16,32,.85); padding: 12px 0 10px; }
-  h1 { margin: 0 0 6px; font-size: 1.35rem; line-height: 1.15; }
-  .sub { color: var(--muted); font-size: .92rem; }
-  .panel {
-    background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
-    border: 1px solid var(--line);
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(circle at top right, rgba(99,164,255,.16), transparent 30%),
+      linear-gradient(180deg, #09111d, #0b1320 35%, #09111d);
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+  .app {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 14px 14px calc(var(--footer-h) + var(--safe-bottom) + 36px);
+  }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    padding: 10px 0 12px;
+    backdrop-filter: blur(10px);
+    background: linear-gradient(180deg, rgba(11,19,32,.94), rgba(11,19,32,.72));
+  }
+  .title {
+    display:flex; align-items:center; justify-content:space-between; gap: 10px;
+    margin-bottom: 12px;
+  }
+  h1 { margin: 0; font-size: 1.1rem; line-height: 1.2; }
+  .sub { color: var(--muted); font-size: .86rem; }
+  .tabs {
+    display:grid; grid-template-columns: repeat(3,1fr); gap: 8px;
+  }
+  .tab-btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.04);
+    color: var(--text);
+    border-radius: 14px;
+    padding: 12px 10px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .tab-btn.active { background: linear-gradient(180deg, rgba(99,164,255,.26), rgba(99,164,255,.14)); border-color: rgba(99,164,255,.45); }
+  .view { display:none; }
+  .view.active { display:block; }
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+    border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
+    padding: 14px;
+    margin-top: 12px;
   }
-  .controls { margin-top: 14px; padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .field label { display:block; color: var(--muted); font-size:.78rem; margin-bottom:6px; }
-  .field input[type="number"], .field input[type="date"] {
-    width: 100%; padding: 13px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-size: 1rem;
+  .grid-2 { display:grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 520px) {
+    .grid-2 { grid-template-columns: minmax(0,1.15fr) minmax(0,.85fr); }
   }
-  .actions { display:flex; gap:10px; grid-column:1/-1; }
-  button {
-    appearance: none; border: none; border-radius: 14px; padding: 13px 16px; font-size: 1rem; font-weight: 600; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; min-height: 48px;
+  label {
+    display:block; font-size:.78rem; color: var(--muted); margin-bottom: 6px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .04em;
   }
-  .primary { background: linear-gradient(180deg, var(--accent), #2d88f0); color: white; flex:1; }
-  .secondary { background: #20304b; color: var(--text); }
-  .ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
-  .trip-list { margin-top: 16px; display: grid; gap: 14px; }
+  input, select, button, textarea {
+    font: inherit;
+  }
+  input[type="date"], input[type="number"], input[type="text"], select, textarea {
+    width:100%;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 13px 12px;
+    min-height: 48px;
+    outline: none;
+  }
+  textarea { min-height: 82px; resize: vertical; }
+  #payRate { max-width: 140px; }
+  @media (max-width: 519px) {
+    #payRate { max-width: 100%; }
+  }
+  .btn-row { display:flex; gap:10px; flex-wrap: wrap; }
+  .btn {
+    border:1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    color:var(--text);
+    border-radius: 14px;
+    min-height: 48px;
+    padding: 12px 14px;
+    font-weight: 800;
+    cursor:pointer;
+  }
+  .btn.primary {
+    background: linear-gradient(180deg, rgba(99,164,255,.28), rgba(99,164,255,.16));
+    border-color: rgba(99,164,255,.46);
+  }
+  .btn.danger {
+    background: linear-gradient(180deg, rgba(255,115,115,.18), rgba(255,115,115,.08));
+    border-color: rgba(255,115,115,.35);
+  }
+  .btn.small { min-height: 40px; padding: 8px 12px; border-radius: 12px; font-weight: 700; }
   .stop {
-    padding: 16px; position: relative;
-    scroll-margin-bottom: 220px;
+    background: rgba(255,255,255,.03);
+    border:1px solid var(--border);
+    border-radius: 18px;
+    padding: 12px;
+    margin-top: 12px;
   }
-  .stop-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
-  .stop-num { font-weight:700; font-size:.95rem; color: var(--accent-2); }
-  .remove { background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 8px 12px; border-radius: 12px; font-size:.9rem; }
-  .location-input {
-    width: 100%; padding: 14px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-size: 1rem;
+  .stop-head {
+    display:flex; align-items:center; justify-content:space-between; gap: 10px; margin-bottom: 10px;
+  }
+  .stop-index {
+    display:inline-flex; align-items:center; justify-content:center;
+    width: 34px; height: 34px; border-radius: 999px;
+    background: rgba(99,164,255,.18); border: 1px solid rgba(99,164,255,.34); font-weight: 900;
+  }
+  .inline-meta { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .pill {
+    display:inline-flex; align-items:center; gap:6px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    border:1px solid var(--border);
+    background: rgba(255,255,255,.04);
+    font-size:.82rem; color: var(--text);
+  }
+  .pill.warn {
+    background: rgba(255,203,107,.14);
+    border-color: rgba(255,203,107,.4);
+    color: #fff2c8;
+  }
+  .pill.good {
+    background: rgba(142,229,155,.14);
+    border-color: rgba(142,229,155,.35);
+    color: #dffff1;
   }
   .row {
-    display:grid; grid-template-columns: 1fr auto; gap: 12px; align-items:center; margin-top: 12px;
+    display:grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
-  .checkbox-wrap { display:flex; align-items:center; gap:8px; color: var(--muted); white-space: nowrap; }
-  .checkbox-wrap input { width: 24px; height: 24px; accent-color: var(--accent); }
-  .stats {
-    display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px;
+  .mini-grid {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
-  .stat {
-    background: rgba(255,255,255,.03); border: 1px solid var(--line); border-radius: 14px; padding: 10px;
+  .checkline {
+    display:flex; align-items:center; gap:10px; min-height:48px;
+    background: var(--panel-2); border:1px solid var(--border); border-radius:14px; padding: 0 12px;
   }
-  .stat .label { color: var(--muted); font-size: .72rem; margin-bottom: 3px; }
-  .stat .value { font-size: 1rem; font-weight: 700; }
-  .missing {
-    margin-top: 10px; display:none; padding: 10px 12px; border-radius: 14px; background: var(--warn-bg); border: 1px solid var(--warn-border); color: #ffd1d1; font-size: .9rem;
+  .checkline input[type="checkbox"] {
+    width: 22px; height: 22px;
   }
-  .stop.missing-route { border-color: var(--warn-border); background: linear-gradient(180deg, rgba(255,107,107,.08), rgba(255,107,107,.03)); }
-  .stop.missing-route .missing { display:block; }
-  .sticky-summary {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-    background: linear-gradient(180deg, rgba(10,16,32,.18), rgba(10,16,32,.88) 28%, rgba(10,16,32,.96) 100%);
-    backdrop-filter: blur(14px);
-    transition: transform .18s ease, opacity .18s ease;
+  .small-note { color: var(--muted); font-size: .82rem; line-height: 1.35; }
+  .footer {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 30;
+    padding: 10px 12px calc(10px + var(--safe-bottom));
+    pointer-events: none;
   }
-  .sticky-summary.is-collapsed .summary-card,
-  .sticky-summary.is-collapsed .footer-note {
-    display: none;
-  }
-  .summary-shell { max-width: 760px; margin: 0 auto; }
-  .summary-toggle {
-    width: 100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line);
-    background: rgba(17,26,44,.96); color: var(--text); font-size: .95rem; font-weight: 700;
+  .footer-card {
+    max-width: 760px;
+    margin: 0 auto;
+    background: rgba(9,15,24,.95);
+    border: 1px solid var(--border);
+    border-radius: 18px;
     box-shadow: var(--shadow);
+    overflow: hidden;
+    pointer-events: auto;
   }
-  .summary-toggle small { color: var(--muted); font-weight: 600; font-size: .8rem; }
-  .summary-toggle .chev { transition: transform .18s ease; color: var(--accent-2); }
-  .sticky-summary.is-collapsed .summary-toggle .chev { transform: rotate(180deg); }
-  .summary-card {
-    margin-top: 10px; padding: 12px; display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  .footer-toggle {
+    width:100%;
+    border:0;
+    background: transparent;
+    color: var(--text);
+    padding: 12px 14px;
+    display:flex; align-items:center; justify-content:space-between; gap: 10px;
+    font-weight: 900;
+    cursor:pointer;
   }
-  .summary-item { padding: 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
-  .summary-item .label { color: var(--muted); font-size: .75rem; }
-  .summary-item .value { font-size: 1.1rem; font-weight: 800; margin-top: 4px; }
-  .summary-item.total { grid-column: 1/-1; background: linear-gradient(180deg, rgba(77,163,255,.17), rgba(77,163,255,.08)); }
-  .footer-note { color: var(--muted); font-size: .78rem; text-align:center; margin-top: 8px; }
-  @media (max-width: 560px) {
-    body { padding-bottom: 180px; }
-    .app { padding-left: 12px; padding-right: 12px; padding-bottom: calc(170px + env(safe-area-inset-bottom)); }
-    .controls { grid-template-columns: 1fr; padding: 14px; }
-    .stats { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .stat { padding: 9px; }
-    .row { grid-template-columns: 1fr; gap: 10px; }
-    .checkbox-wrap { justify-content: flex-start; }
-    .summary-card { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .summary-item { padding: 10px; }
-    .summary-item .value { font-size: 1rem; }
-    .footer-note { padding: 0 4px; }
+  .footer-body { padding: 0 14px 14px; }
+  .footer.collapsed .footer-body { display:none; }
+  .totals-grid {
+    display:grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .metric {
+    background: rgba(255,255,255,.04);
+    border:1px solid var(--border);
+    border-radius: 14px;
+    padding: 11px 12px;
+  }
+  .metric .k { color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+  .metric .v { font-size: 1.15rem; font-weight: 900; margin-top: 4px; }
+  .section-title { margin: 0 0 10px; font-size: 1rem; }
+  .week-nav {
+    display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom: 10px;
+  }
+  .week-span { font-weight: 900; text-align:center; flex:1; }
+  .list { display:grid; gap: 10px; }
+  .saved-day {
+    border:1px solid var(--border);
+    border-radius: 16px;
+    background: rgba(255,255,255,.03);
+    padding: 12px;
+  }
+  .saved-day h3 { margin: 0 0 4px; font-size: 1rem; }
+  .saved-day .line { color: var(--muted); font-size: .85rem; margin-top: 4px; }
+  .saved-day .actions { display:flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .empty {
+    color: var(--muted);
+    text-align:center;
+    padding: 16px 8px;
+    border:1px dashed var(--border);
+    border-radius: 16px;
+    margin-top: 10px;
+  }
+  .history-week {
+    margin-top: 12px;
+    border:1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(255,255,255,.03);
+  }
+  .history-head {
+    display:flex; justify-content:space-between; align-items:center; gap: 10px;
+    padding: 12px 14px; background: rgba(255,255,255,.03); cursor:pointer;
+  }
+  .history-body { padding: 0 12px 12px; display:none; }
+  .history-week.open .history-body { display:block; }
+  .tiny { font-size: .78rem; color: var(--muted); }
+  .right { text-align:right; }
+  .route-note { margin-top: 8px; }
+  .header-actions { display:flex; gap: 8px; flex-wrap: wrap; }
+  .generated-tag {
+    display:inline-flex; align-items:center; gap:6px; padding: 4px 8px;
+    border-radius: 999px; font-size: .75rem; font-weight: 800;
+    background: rgba(255,203,107,.14); border:1px solid rgba(255,203,107,.35); color:#fff2c8;
+  }
+  .type-note { margin-top: 6px; }
+  @media (min-width: 700px) {
+    .row.two {
+      grid-template-columns: 1.2fr .8fr .8fr;
+    }
   }
 </style>
 </head>
 <body>
-  <div class="app">
-    <div class="header">
-      <h1>JB Hunt Denali Mileage Tracker</h1>
-      <div class="sub">Phone-first trip builder. Pick stops in order, check load/unload when paid, and the totals update automatically.</div>
+<div class="app">
+<datalist id="locationSuggestions"></datalist>
+  <div class="topbar">
+    <div class="title">
+      <div>
+        <h1>JB Hunt Denali Tracker v4</h1>
+        <div class="sub">Miles, stop pay, detention, week totals, and saved history.</div>
+      </div>
     </div>
-
-    <section class="panel controls">
-      <div class="field">
-        <label for="tripDate">Trip date</label>
-        <input id="tripDate" type="date" />
-      </div>
-      <div class="field">
-        <label for="payRate">Pay rate per mile ($)</label>
-        <input id="payRate" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal" />
-      </div>
-      <div class="actions">
-        <button id="addStopBtn" class="primary" type="button">Add stop</button>
-        <button id="resetBtn" class="secondary" type="button">Reset trip</button>
-      </div>
-    </section>
-
-    <section id="tripList" class="trip-list"></section>
-  </div>
-
-  <div class="sticky-summary" id="stickySummary">
-    <div class="summary-shell">
-      <button id="summaryToggle" class="summary-toggle" type="button" aria-expanded="true">
-        <span>
-          Totals
-          <small id="summaryMiniTotal">$0.00</small>
-        </span>
-        <span class="chev">▾</span>
-      </button>
-      <div class="summary-card">
-      <div class="summary-item">
-        <div class="label">Total miles</div>
-        <div class="value" id="totalMiles">0</div>
-      </div>
-      <div class="summary-item">
-        <div class="label">Total stops with load/unload</div>
-        <div class="value" id="totalPaidStops">0</div>
-      </div>
-      <div class="summary-item">
-        <div class="label">Miles pay</div>
-        <div class="value" id="milesPay">$0.00</div>
-      </div>
-      <div class="summary-item">
-        <div class="label">Load pay</div>
-        <div class="value" id="loadPay">$0.00</div>
-      </div>
-      <div class="summary-item total">
-        <div class="label">Total pay</div>
-        <div class="value" id="totalPay">$0.00</div>
-      </div>
-      </div>
-      <div class="footer-note">Route lookup uses your uploaded mileage table and automatically checks the reverse direction too.</div>
+    <div class="tabs">
+      <button type="button" class="tab-btn active" data-view="todayView">Today</button>
+      <button type="button" class="tab-btn" data-view="weekView">This Week</button>
+      <button class="tab-btn" data-view="historyView">Previous Weeks</button>
     </div>
   </div>
+
+  <section id="todayView" class="view active">
+    <div class="card">
+      <div class="grid-2">
+        <div>
+          <label for="dayDate">Day</label>
+          <input id="dayDate" type="date">
+        </div>
+        <div>
+          <label for="payRate">Pay Rate Per Mile ($)</label>
+          <input id="payRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00">
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <label for="dayNotes">Notes</label>
+        <textarea id="dayNotes" placeholder="Optional note for this day"></textarea>
+      </div>
+      <div class="btn-row" style="margin-top:12px;">
+        <button type="button" class="btn primary" id="addStopBtn">Add Stop</button>
+        <button type="button" class="btn" id="saveDayBtn">Save Day</button>
+        <button type="button" class="btn danger" id="resetDayBtn">Reset Day</button>
+      </div>
+      <div class="small-note" style="margin-top:10px;">
+        If no official miles are found for a stop pair, the app tries an address-based estimate and labels that leg as generated.
+      </div>
+    </div>
+
+    <div id="stopsContainer"></div>
+  </section>
+
+  <section id="weekView" class="view">
+    <div class="card">
+      <div class="week-nav">
+        <button type="button" class="btn small" id="prevWeekBtn">← Week</button>
+        <div class="week-span" id="weekSpanLabel"></div>
+        <button type="button" class="btn small" id="nextWeekBtn">Week →</button>
+      </div>
+      <div class="totals-grid" id="weekTotals"></div>
+      <div id="weekDaysList" class="list"></div>
+    </div>
+  </section>
+
+  <section id="historyView" class="view">
+    <div class="card">
+      <h2 class="section-title">Previous Weeks</h2>
+      <div class="small-note">Tap a week to expand it. Saved days stay on the device in this browser.</div>
+      <div id="historyWeeks"></div>
+    </div>
+  </section>
+</div>
+
+<div class="footer" id="footerWrap">
+  <div class="footer-card">
+    <button type="button" class="footer-toggle" id="footerToggleBtn">
+      <span>Totals</span>
+      <span id="footerToggleIcon">▾</span>
+    </button>
+    <div class="footer-body">
+      <div class="totals-grid" id="todayTotalsGrid"></div>
+    </div>
+  </div>
+</div>
 
 <script>
-const LOAD_PAY = 37;
-const LOCATIONS = ["Advanced Micro", "Allen Gas Station", "Allens Canning", "Bakey Feeds", "Barton Rd", "Berryville Pit", "Bluebell", "ButterBall Huntsville", "Butterball Ozark", "Cargill Feedmill", "Cargill Live Haul Springdale", "Cecil", "Cecil Plow", "Chick n Quick", "Cobb Vantress (truckwash + hatchery)", "Denali Plow Ozark", "Drain Masters", "Durham", "Gerber", "Gravette", "Green Forest Fracs/ YARD", "Greenwood", "Hackett", "Harrison", "Highway 59", "Hiland Dairy", "Hindsville", "Hiram Walker", "Hydro Ag Mulberry Plow", "Keith Smith", "Kibler Plow Sites and Storage", "Kibler Storage Tanks", "Lowell", "Mars Pet Foods", "Mckee Foods", "Moses Plumbing", "Natural Dam", "Nebo", "OK Foods Fort Smith", "OK Foods Heavener", "OMP (Ozark Mtn Poultry)", "Paris Bottoms", "Pinnacle Foods in Fayeteville", "Planters", "Possum Hollow Rd", "Pro Rooter", "ROARK", "Schwanns", "Shale Pit", "Shell Knob", "Simmons Benton County", "Simmons Feedmill Decatur/Wellness pet", "Simmons New Plant (Cook Plant)", "Simmons Old Decatur Plant", "Simmons Old Plant (Main Plant)", "Simmons Treats/truckwash/wetpet", "South West City Plow", "Southeastern Poultry", "Southwest City", "Tate & Lyle", "The Bull", "Twin Rivers", "Tyson Berry Street", "Tyson Berryville", "Tyson Foods Bergman Feed Mill", "Tyson Ft Smith", "Tyson Green Forest", "Tyson Johnson Road", "Tyson Randall Road + Tyson Truck Stop", "Tyson Research and Development", "Tyson Waldron", "Tyson of Rogers", "Van Buren Yard", "Wesley", "West Ark Plumbing", "Zero Mtn"];
-const ROUTES = {"Tyson of Rogers|Kibler Plow Sites and Storage": 76.0, "Kibler Plow Sites and Storage|Tyson of Rogers": 76.0, "Tyson of Rogers|Allens Canning": 29.0, "Allens Canning|Tyson of Rogers": 29.0, "Tyson of Rogers|Hackett": 97.0, "Hackett|Tyson of Rogers": 97.0, "Tyson of Rogers|Nebo": 78.0, "Nebo|Tyson of Rogers": 78.0, "Tyson of Rogers|Highway 59": 77.0, "Highway 59|Tyson of Rogers": 77.0, "Tyson of Rogers|Hydro Ag Mulberry Plow": 77.0, "Hydro Ag Mulberry Plow|Tyson of Rogers": 77.0, "Tyson of Rogers|Cecil": 107.0, "Cecil|Tyson of Rogers": 107.0, "Tyson of Rogers|Greenwood": 105.0, "Greenwood|Tyson of Rogers": 105.0, "Tyson of Rogers|Gravette": 34.0, "Gravette|Tyson of Rogers": 34.0, "Cargill Live Haul Springdale|Kibler Plow Sites and Storage": 67.0, "Kibler Plow Sites and Storage|Cargill Live Haul Springdale": 67.0, "Cargill Live Haul Springdale|Allens Canning": 23.0, "Allens Canning|Cargill Live Haul Springdale": 23.0, "Cargill Live Haul Springdale|Hackett": 89.0, "Hackett|Cargill Live Haul Springdale": 89.0, "Cargill Live Haul Springdale|Nebo": 70.0, "Nebo|Cargill Live Haul Springdale": 70.0, "Cargill Live Haul Springdale|Highway 59": 68.0, "Highway 59|Cargill Live Haul Springdale": 68.0, "Cargill Live Haul Springdale|Hydro Ag Mulberry Plow": 73.0, "Hydro Ag Mulberry Plow|Cargill Live Haul Springdale": 73.0, "Cargill Live Haul Springdale|Cecil": 98.0, "Cecil|Cargill Live Haul Springdale": 98.0, "Cargill Live Haul Springdale|Greenwood": 96.0, "Greenwood|Cargill Live Haul Springdale": 96.0, "Cargill Live Haul Springdale|Gravette": 45.0, "Gravette|Cargill Live Haul Springdale": 45.0, "Cargill Feedmill|Kibler Plow Sites and Storage": 62.0, "Kibler Plow Sites and Storage|Cargill Feedmill": 62.0, "Cargill Feedmill|Allens Canning": 22.0, "Allens Canning|Cargill Feedmill": 22.0, "Cargill Feedmill|Hackett": 83.0, "Hackett|Cargill Feedmill": 83.0, "Cargill Feedmill|Nebo": 64.0, "Nebo|Cargill Feedmill": 64.0, "Cargill Feedmill|Highway 59": 63.0, "Highway 59|Cargill Feedmill": 63.0, "Cargill Feedmill|Hydro Ag Mulberry Plow": 67.0, "Hydro Ag Mulberry Plow|Cargill Feedmill": 67.0, "Cargill Feedmill|Cecil": 92.0, "Cecil|Cargill Feedmill": 92.0, "Cargill Feedmill|Greenwood": 90.0, "Greenwood|Cargill Feedmill": 90.0, "Cargill Feedmill|Gravette": 48.0, "Gravette|Cargill Feedmill": 48.0, "Tyson Randall Road + Tyson Truck Stop|Kibler Plow Sites and Storage": 66.0, "Kibler Plow Sites and Storage|Tyson Randall Road + Tyson Truck Stop": 66.0, "Tyson Randall Road + Tyson Truck Stop|Allens Canning": 22.0, "Allens Canning|Tyson Randall Road + Tyson Truck Stop": 22.0, "Tyson Randall Road + Tyson Truck Stop|Hackett": 88.0, "Hackett|Tyson Randall Road + Tyson Truck Stop": 88.0, "Tyson Randall Road + Tyson Truck Stop|Nebo": 69.0, "Nebo|Tyson Randall Road + Tyson Truck Stop": 69.0, "Tyson Randall Road + Tyson Truck Stop|Highway 59": 68.0, "Highway 59|Tyson Randall Road + Tyson Truck Stop": 68.0, "Tyson Randall Road + Tyson Truck Stop|Hydro Ag Mulberry Plow": 72.0, "Hydro Ag Mulberry Plow|Tyson Randall Road + Tyson Truck Stop": 72.0, "Tyson Randall Road + Tyson Truck Stop|Cecil": 97.0, "Cecil|Tyson Randall Road + Tyson Truck Stop": 97.0, "Tyson Randall Road + Tyson Truck Stop|Greenwood": 95.0, "Greenwood|Tyson Randall Road + Tyson Truck Stop": 95.0, "Tyson Randall Road + Tyson Truck Stop|Gravette": 44.0, "Gravette|Tyson Randall Road + Tyson Truck Stop": 44.0, "Tyson Johnson Road|Kibler Plow Sites and Storage": 61.0, "Kibler Plow Sites and Storage|Tyson Johnson Road": 61.0, "Tyson Johnson Road|Allens Canning": 21.0, "Allens Canning|Tyson Johnson Road": 21.0, "Tyson Johnson Road|Hackett": 83.0, "Hackett|Tyson Johnson Road": 83.0, "Tyson Johnson Road|Nebo": 64.0, "Nebo|Tyson Johnson Road": 64.0, "Tyson Johnson Road|Highway 59": 63.0, "Highway 59|Tyson Johnson Road": 63.0, "Tyson Johnson Road|Hydro Ag Mulberry Plow": 67.0, "Hydro Ag Mulberry Plow|Tyson Johnson Road": 67.0, "Tyson Johnson Road|Cecil": 92.0, "Cecil|Tyson Johnson Road": 92.0, "Tyson Johnson Road|Greenwood": 90.0, "Greenwood|Tyson Johnson Road": 90.0, "Tyson Johnson Road|Gravette": 47.0, "Gravette|Tyson Johnson Road": 47.0, "Southeastern Poultry|Kibler Plow Sites and Storage": 78.0, "Kibler Plow Sites and Storage|Southeastern Poultry": 78.0, "Southeastern Poultry|Allens Canning": 34.0, "Allens Canning|Southeastern Poultry": 34.0, "Southeastern Poultry|Hackett": 100.0, "Hackett|Southeastern Poultry": 100.0, "Southeastern Poultry|Nebo": 81.0, "Nebo|Southeastern Poultry": 81.0, "Southeastern Poultry|Highway 59": 80.0, "Highway 59|Southeastern Poultry": 80.0, "Southeastern Poultry|Hydro Ag Mulberry Plow": 84.0, "Hydro Ag Mulberry Plow|Southeastern Poultry": 84.0, "Southeastern Poultry|Cecil": 109.0, "Cecil|Southeastern Poultry": 109.0, "Southeastern Poultry|Greenwood": 107.0, "Greenwood|Southeastern Poultry": 107.0, "Southeastern Poultry|Gravette": 32.0, "Gravette|Southeastern Poultry": 32.0, "Tyson Research and Development|Kibler Plow Sites and Storage": 62.0, "Kibler Plow Sites and Storage|Tyson Research and Development": 62.0, "Tyson Research and Development|Allens Canning": 77.0, "Allens Canning|Tyson Research and Development": 21.0, "Tyson Research and Development|Hackett": 83.0, "Hackett|Tyson Research and Development": 83.0, "Tyson Research and Development|Nebo": 65.0, "Nebo|Tyson Research and Development": 65.0, "Tyson Research and Development|Highway 59": 63.0, "Highway 59|Tyson Research and Development": 63.0, "Tyson Research and Development|Hydro Ag Mulberry Plow": 68.0, "Hydro Ag Mulberry Plow|Tyson Research and Development": 68.0, "Tyson Research and Development|Cecil": 93.0, "Cecil|Tyson Research and Development": 93.0, "Tyson Research and Development|Greenwood": 91.0, "Greenwood|Tyson Research and Development": 91.0, "Tyson Research and Development|Gravette": 47.0, "Gravette|Tyson Research and Development": 47.0, "Chick n Quick|Kibler Plow Sites and Storage": 74.0, "Kibler Plow Sites and Storage|Chick n Quick": 74.0, "Chick n Quick|Allens Canning": 30.0, "Allens Canning|Chick n Quick": 30.0, "Chick n Quick|Hackett": 95.0, "Hackett|Chick n Quick": 95.0, "Chick n Quick|Nebo": 76.0, "Nebo|Chick n Quick": 76.0, "Chick n Quick|Highway 59": 75.0, "Highway 59|Chick n Quick": 75.0, "Chick n Quick|Hydro Ag Mulberry Plow": 80.0, "Hydro Ag Mulberry Plow|Chick n Quick": 80.0, "Chick n Quick|Cecil": 105.0, "Cecil|Chick n Quick": 105.0, "Chick n Quick|Greenwood": 103.0, "Greenwood|Chick n Quick": 103.0, "Chick n Quick|Gravette": 36.0, "Gravette|Chick n Quick": 36.0, "OMP (Ozark Mtn Poultry)|Kibler Plow Sites and Storage": 80.0, "Kibler Plow Sites and Storage|OMP (Ozark Mtn Poultry)": 80.0, "OMP (Ozark Mtn Poultry)|Allens Canning": 36.0, "Allens Canning|OMP (Ozark Mtn Poultry)": 36.0, "OMP (Ozark Mtn Poultry)|Hackett": 101.0, "Hackett|OMP (Ozark Mtn Poultry)": 101.0, "OMP (Ozark Mtn Poultry)|Nebo": 82.0, "Nebo|OMP (Ozark Mtn Poultry)": 82.0, "OMP (Ozark Mtn Poultry)|Highway 59": 81.0, "Highway 59|OMP (Ozark Mtn Poultry)": 81.0, "OMP (Ozark Mtn Poultry)|Hydro Ag Mulberry Plow": 85.0, "Hydro Ag Mulberry Plow|OMP (Ozark Mtn Poultry)": 85.0, "OMP (Ozark Mtn Poultry)|Cecil": 110.0, "Cecil|OMP (Ozark Mtn Poultry)": 110.0, "OMP (Ozark Mtn Poultry)|Greenwood": 108.0, "Greenwood|OMP (Ozark Mtn Poultry)": 108.0, "OMP (Ozark Mtn Poultry)|Gravette": 33.0, "Gravette|OMP (Ozark Mtn Poultry)": 33.0, "Tyson Berry Street|Kibler Plow Sites and Storage": 67.0, "Kibler Plow Sites and Storage|Tyson Berry Street": 67.0, "Tyson Berry Street|Allens Canning": 22.0, "Allens Canning|Tyson Berry Street": 22.0, "Tyson Berry Street|Hackett": 88.0, "Hackett|Tyson Berry Street": 88.0, "Tyson Berry Street|Nebo": 69.0, "Nebo|Tyson Berry Street": 69.0, "Tyson Berry Street|Highway 59": 68.0, "Highway 59|Tyson Berry Street": 68.0, "Tyson Berry Street|Hydro Ag Mulberry Plow": 72.0, "Hydro Ag Mulberry Plow|Tyson Berry Street": 72.0, "Tyson Berry Street|Cecil": 97.0, "Cecil|Tyson Berry Street": 97.0, "Tyson Berry Street|Greenwood": 96.0, "Greenwood|Tyson Berry Street": 96.0, "Tyson Berry Street|Gravette": 46.0, "Gravette|Tyson Berry Street": 46.0, "Southwest City|South West City Plow": 8.0, "South West City Plow|Southwest City": 8.0, "Southwest City|Kibler Plow Sites and Storage": 113.0, "Kibler Plow Sites and Storage|Southwest City": 113.0, "Southwest City|Allens Canning": 35.0, "Allens Canning|Southwest City": 35.0, "Southwest City|Hackett": 134.0, "Hackett|Southwest City": 134.0, "Southwest City|Nebo": 115.0, "Nebo|Southwest City": 115.0, "Southwest City|Highway 59": 114.0, "Highway 59|Southwest City": 114.0, "Southwest City|Hydro Ag Mulberry Plow": 118.0, "Hydro Ag Mulberry Plow|Southwest City": 118.0, "Southwest City|Cecil": 143.0, "Cecil|Southwest City": 143.0, "Southwest City|Greenwood": 141.0, "Greenwood|Southwest City": 141.0, "Southwest City|Gravette": 9.0, "Gravette|Southwest City": 9.0, "Cobb Vantress (truckwash + hatchery)|Kibler Plow Sites and Storage": 79.0, "Kibler Plow Sites and Storage|Cobb Vantress (truckwash + hatchery)": 79.0, "Cobb Vantress (truckwash + hatchery)|Allens Canning": 5.0, "Allens Canning|Cobb Vantress (truckwash + hatchery)": 5.0, "Cobb Vantress (truckwash + hatchery)|Hackett": 101.0, "Hackett|Cobb Vantress (truckwash + hatchery)": 101.0, "Cobb Vantress (truckwash + hatchery)|Nebo": 82.0, "Nebo|Cobb Vantress (truckwash + hatchery)": 82.0, "Cobb Vantress (truckwash + hatchery)|Highway 59": 81.0, "Highway 59|Cobb Vantress (truckwash + hatchery)": 81.0, "Cobb Vantress (truckwash + hatchery)|Hydro Ag Mulberry Plow": 85.0, "Hydro Ag Mulberry Plow|Cobb Vantress (truckwash + hatchery)": 85.0, "Cobb Vantress (truckwash + hatchery)|Cecil": 110.0, "Cecil|Cobb Vantress (truckwash + hatchery)": 110.0, "Cobb Vantress (truckwash + hatchery)|Greenwood": 108.0, "Greenwood|Cobb Vantress (truckwash + hatchery)": 108.0, "Cobb Vantress (truckwash + hatchery)|Gravette": 25.0, "Gravette|Cobb Vantress (truckwash + hatchery)": 25.0, "Simmons Treats/truckwash/wetpet|Kibler Plow Sites and Storage": 79.0, "Kibler Plow Sites and Storage|Simmons Treats/truckwash/wetpet": 79.0, "Simmons Treats/truckwash/wetpet|Allens Canning": 5.0, "Allens Canning|Simmons Treats/truckwash/wetpet": 5.0, "Simmons Treats/truckwash/wetpet|Hackett": 101.0, "Hackett|Simmons Treats/truckwash/wetpet": 101.0, "Simmons Treats/truckwash/wetpet|Nebo": 82.0, "Nebo|Simmons Treats/truckwash/wetpet": 82.0, "Simmons Treats/truckwash/wetpet|Highway 59": 81.0, "Highway 59|Simmons Treats/truckwash/wetpet": 81.0, "Simmons Treats/truckwash/wetpet|Hydro Ag Mulberry Plow": 85.0, "Hydro Ag Mulberry Plow|Simmons Treats/truckwash/wetpet": 85.0, "Simmons Treats/truckwash/wetpet|Cecil": 110.0, "Cecil|Simmons Treats/truckwash/wetpet": 110.0, "Simmons Treats/truckwash/wetpet|Greenwood": 108.0, "Greenwood|Simmons Treats/truckwash/wetpet": 108.0, "Simmons Treats/truckwash/wetpet|Gravette": 25.0, "Gravette|Simmons Treats/truckwash/wetpet": 25.0, "Simmons Benton County|Kibler Plow Sites and Storage": 89.0, "Kibler Plow Sites and Storage|Simmons Benton County": 89.0, "Simmons Benton County|Allens Canning": 12.0, "Allens Canning|Simmons Benton County": 12.0, "Simmons Benton County|Hackett": 110.0, "Hackett|Simmons Benton County": 110.0, "Simmons Benton County|Nebo": 91.0, "Nebo|Simmons Benton County": 91.0, "Simmons Benton County|Highway 59": 91.0, "Highway 59|Simmons Benton County": 91.0, "Simmons Benton County|Hydro Ag Mulberry Plow": 94.0, "Hydro Ag Mulberry Plow|Simmons Benton County": 94.0, "Simmons Benton County|Cecil": 119.0, "Cecil|Simmons Benton County": 119.0, "Simmons Benton County|Greenwood": 118.0, "Greenwood|Simmons Benton County": 118.0, "Simmons Benton County|Gravette": 20.0, "Gravette|Simmons Benton County": 20.0, "Simmons Feedmill Decatur/Wellness pet|Kibler Plow Sites and Storage": 93.0, "Kibler Plow Sites and Storage|Simmons Feedmill Decatur/Wellness pet": 93.0, "Simmons Feedmill Decatur/Wellness pet|Allens Canning": 15.0, "Allens Canning|Simmons Feedmill Decatur/Wellness pet": 15.0, "Simmons Feedmill Decatur/Wellness pet|Hackett": 112.0, "Hackett|Simmons Feedmill Decatur/Wellness pet": 112.0, "Simmons Feedmill Decatur/Wellness pet|Nebo": 96.0, "Nebo|Simmons Feedmill Decatur/Wellness pet": 96.0, "Simmons Feedmill Decatur/Wellness pet|Highway 59": 94.0, "Highway 59|Simmons Feedmill Decatur/Wellness pet": 94.0, "Simmons Feedmill Decatur/Wellness pet|Hydro Ag Mulberry Plow": 99.0, "Hydro Ag Mulberry Plow|Simmons Feedmill Decatur/Wellness pet": 99.0, "Simmons Feedmill Decatur/Wellness pet|Cecil": 124.0, "Cecil|Simmons Feedmill Decatur/Wellness pet": 124.0, "Simmons Feedmill Decatur/Wellness pet|Greenwood": 122.0, "Greenwood|Simmons Feedmill Decatur/Wellness pet": 122.0, "Simmons Feedmill Decatur/Wellness pet|Gravette": 15.0, "Gravette|Simmons Feedmill Decatur/Wellness pet": 15.0, "Simmons Old Decatur Plant|Kibler Plow Sites and Storage": 90.0, "Kibler Plow Sites and Storage|Simmons Old Decatur Plant": 90.0, "Simmons Old Decatur Plant|Allens Canning": 13.0, "Allens Canning|Simmons Old Decatur Plant": 13.0, "Simmons Old Decatur Plant|Hackett": 113.0, "Hackett|Simmons Old Decatur Plant": 113.0, "Simmons Old Decatur Plant|Nebo": 94.0, "Nebo|Simmons Old Decatur Plant": 94.0, "Simmons Old Decatur Plant|Highway 59": 93.0, "Highway 59|Simmons Old Decatur Plant": 93.0, "Simmons Old Decatur Plant|Hydro Ag Mulberry Plow": 97.0, "Hydro Ag Mulberry Plow|Simmons Old Decatur Plant": 97.0, "Simmons Old Decatur Plant|Cecil": 122.0, "Cecil|Simmons Old Decatur Plant": 122.0, "Simmons Old Decatur Plant|Greenwood": 120.0, "Greenwood|Simmons Old Decatur Plant": 120.0, "Simmons Old Decatur Plant|Gravette": 16.0, "Gravette|Simmons Old Decatur Plant": 16.0, "Mckee Foods|Kibler Plow Sites and Storage": 86.0, "Kibler Plow Sites and Storage|Mckee Foods": 86.0, "Mckee Foods|Allens Canning": 10.0, "Allens Canning|Mckee Foods": 10.0, "Mckee Foods|Hackett": 108.0, "Hackett|Mckee Foods": 108.0, "Mckee Foods|Nebo": 89.0, "Nebo|Mckee Foods": 89.0, "Mckee Foods|Highway 59": 88.0, "Highway 59|Mckee Foods": 88.0, "Mckee Foods|Hydro Ag Mulberry Plow": 92.0, "Hydro Ag Mulberry Plow|Mckee Foods": 92.0, "Mckee Foods|Cecil": 117.0, "Cecil|Mckee Foods": 117.0, "Mckee Foods|Greenwood": 115.0, "Greenwood|Mckee Foods": 115.0, "Mckee Foods|Gravette": 22.0, "Gravette|Mckee Foods": 22.0, "Allens Canning|Kibler Plow Sites and Storage": 79.0, "Kibler Plow Sites and Storage|Allens Canning": 79.0, "Allens Canning|Hackett": 100.0, "Hackett|Allens Canning": 100.0, "Allens Canning|Nebo": 82.0, "Nebo|Allens Canning": 81.0, "Allens Canning|Highway 59": 80.0, "Highway 59|Allens Canning": 80.0, "Allens Canning|Hydro Ag Mulberry Plow": 85.0, "Hydro Ag Mulberry Plow|Allens Canning": 85.0, "Allens Canning|Cecil": 111.0, "Cecil|Allens Canning": 111.0, "Allens Canning|Greenwood": 109.0, "Greenwood|Allens Canning": 109.0, "Allens Canning|Gravette": 26.0, "Gravette|Allens Canning": 26.0, "Lowell|Kibler Plow Sites and Storage": 71.0, "Kibler Plow Sites and Storage|Lowell": 71.0, "Lowell|Hackett": 91.0, "Hackett|Lowell": 91.0, "Lowell|Nebo": 72.0, "Nebo|Lowell": 72.0, "Lowell|Highway 59": 71.0, "Highway 59|Lowell": 71.0, "Lowell|Hydro Ag Mulberry Plow": 75.0, "Hydro Ag Mulberry Plow|Lowell": 75.0, "Lowell|Cecil": 101.0, "Cecil|Lowell": 101.0, "Lowell|Greenwood": 98.0, "Greenwood|Lowell": 98.0, "Lowell|Gravette": 46.0, "Gravette|Lowell": 46.0, "Lowell|Tyson of Rogers": 6.0, "Tyson of Rogers|Lowell": 6.0, "Lowell|Cargill Live Haul Springdale": 5.0, "Cargill Live Haul Springdale|Lowell": 5.0, "Lowell|Cargill Feedmill": 7.0, "Cargill Feedmill|Lowell": 7.0, "Lowell|Tyson Randall Road + Tyson Truck Stop": 5.0, "Tyson Randall Road + Tyson Truck Stop|Lowell": 5.0, "Lowell|Tyson Johnson Road": 9.0, "Tyson Johnson Road|Lowell": 9.0, "Lowell|Southeastern Poultry": 8.0, "Southeastern Poultry|Lowell": 8.0, "Lowell|Tyson Research and Development": 9.0, "Tyson Research and Development|Lowell": 9.0, "Lowell|Chick n Quick": 5.0, "Chick n Quick|Lowell": 5.0, "Lowell|OMP (Ozark Mtn Poultry)": 7.0, "OMP (Ozark Mtn Poultry)|Lowell": 7.0, "Lowell|Tyson Berry Street": 6.0, "Tyson Berry Street|Lowell": 6.0, "Lowell|Southwest City": 46.0, "Southwest City|Lowell": 46.0, "Lowell|Cobb Vantress (truckwash + hatchery)": 26.0, "Cobb Vantress (truckwash + hatchery)|Lowell": 26.0, "Lowell|Simmons Treats/truckwash/wetpet": 29.0, "Simmons Treats/truckwash/wetpet|Lowell": 29.0, "Lowell|Simmons Benton County": 26.0, "Simmons Benton County|Lowell": 26.0, "Lowell|Simmons Feedmill Decatur/Wellness pet": 34.0, "Simmons Feedmill Decatur/Wellness pet|Lowell": 34.0, "Lowell|Simmons Old Decatur Plant": 26.0, "Simmons Old Decatur Plant|Lowell": 26.0, "Lowell|Mckee Foods": 23.0, "Mckee Foods|Lowell": 23.0, "Lowell|Allens Canning": 25.0, "Allens Canning|Lowell": 25.0, "Lowell|Tyson Berryville": 56.0, "Tyson Berryville|Lowell": 51.0, "Lowell|Tyson Green Forest": 67.0, "Tyson Green Forest|Lowell": 67.0, "Lowell|ButterBall Huntsville": 34.0, "ButterBall Huntsville|Lowell": 34.0, "Lowell|Berryville Pit": 49.0, "Berryville Pit|Lowell": 65.0, "Lowell|Green Forest Fracs/ YARD": 65.0, "Green Forest Fracs/ YARD|Lowell": 67.0, "Lowell|Pinnacle Foods in Fayeteville": 19.0, "Pinnacle Foods in Fayeteville|Lowell": 19.0, "Simmons New Plant (Cook Plant)|Hackett": 25.0, "Hackett|Simmons New Plant (Cook Plant)": 25.0, "Simmons New Plant (Cook Plant)|Nebo": 6.0, "Nebo|Simmons New Plant (Cook Plant)": 6.0, "Simmons New Plant (Cook Plant)|Highway 59": 3.0, "Highway 59|Simmons New Plant (Cook Plant)": 3.0, "Simmons New Plant (Cook Plant)|Hydro Ag Mulberry Plow": 23.0, "Hydro Ag Mulberry Plow|Simmons New Plant (Cook Plant)": 23.0, "Simmons New Plant (Cook Plant)|Allens Canning": 78.0, "Allens Canning|Simmons New Plant (Cook Plant)": 78.0, "Simmons New Plant (Cook Plant)|Kibler Plow Sites and Storage": 12.0, "Kibler Plow Sites and Storage|Simmons New Plant (Cook Plant)": 12.0, "Simmons New Plant (Cook Plant)|Cecil Plow": 41.0, "Cecil Plow|Simmons New Plant (Cook Plant)": 41.0, "Simmons New Plant (Cook Plant)|Greenwood": 30.0, "Greenwood|Simmons New Plant (Cook Plant)": 30.0, "Simmons New Plant (Cook Plant)|Paris Bottoms": 51.0, "Paris Bottoms|Simmons New Plant (Cook Plant)": 51.0, "Simmons Old Plant (Main Plant)|Hackett": 25.0, "Hackett|Simmons Old Plant (Main Plant)": 25.0, "Simmons Old Plant (Main Plant)|Nebo": 7.0, "Nebo|Simmons Old Plant (Main Plant)": 7.0, "Simmons Old Plant (Main Plant)|Denali Plow Ozark": 42.0, "Denali Plow Ozark|Simmons Old Plant (Main Plant)": 42.0, "Simmons Old Plant (Main Plant)|Highway 59": 4.0, "Highway 59|Simmons Old Plant (Main Plant)": 4.0, "Simmons Old Plant (Main Plant)|Hydro Ag Mulberry Plow": 24.0, "Hydro Ag Mulberry Plow|Simmons Old Plant (Main Plant)": 24.0, "Simmons Old Plant (Main Plant)|Kibler Plow Sites and Storage": 12.0, "Kibler Plow Sites and Storage|Simmons Old Plant (Main Plant)": 12.0, "Simmons Old Plant (Main Plant)|Allens Canning": 79.0, "Allens Canning|Simmons Old Plant (Main Plant)": 79.0, "Simmons Old Plant (Main Plant)|Cecil Plow": 49.0, "Cecil Plow|Simmons Old Plant (Main Plant)": 49.0, "Simmons Old Plant (Main Plant)|Greenwood": 30.0, "Greenwood|Simmons Old Plant (Main Plant)": 30.0, "Simmons Old Plant (Main Plant)|Paris Bottoms": 52.0, "Paris Bottoms|Simmons Old Plant (Main Plant)": 52.0, "OK Foods Fort Smith|Hackett": 24.0, "Hackett|OK Foods Fort Smith": 24.0, "OK Foods Fort Smith|Nebo": 7.0, "Nebo|OK Foods Fort Smith": 7.0, "OK Foods Fort Smith|Highway 59": 6.0, "Highway 59|OK Foods Fort Smith": 6.0, "OK Foods Fort Smith|Hydro Ag Mulberry Plow": 26.0, "Hydro Ag Mulberry Plow|OK Foods Fort Smith": 26.0, "OK Foods Fort Smith|Kibler Plow Sites and Storage": 15.0, "Kibler Plow Sites and Storage|OK Foods Fort Smith": 15.0, "OK Foods Fort Smith|Allens Canning": 80.0, "Allens Canning|OK Foods Fort Smith": 80.0, "OK Foods Fort Smith|Cecil Plow": 44.0, "Cecil Plow|OK Foods Fort Smith": 44.0, "OK Foods Fort Smith|Greenwood": 31.0, "Greenwood|OK Foods Fort Smith": 31.0, "OK Foods Fort Smith|Paris Bottoms": 53.0, "Paris Bottoms|OK Foods Fort Smith": 53.0, "Mars Pet Foods|Hackett": 18.0, "Hackett|Mars Pet Foods": 18.0, "Mars Pet Foods|Kibler Plow Sites and Storage": 13.0, "Kibler Plow Sites and Storage|Mars Pet Foods": 13.0, "Mars Pet Foods|Nebo": 9.0, "Nebo|Mars Pet Foods": 9.0, "Mars Pet Foods|Highway 59": 9.0, "Highway 59|Mars Pet Foods": 9.0, "Mars Pet Foods|Allens Canning": 88.0, "Allens Canning|Mars Pet Foods": 88.0, "Mars Pet Foods|Hydro Ag Mulberry Plow": 34.0, "Hydro Ag Mulberry Plow|Mars Pet Foods": 34.0, "Mars Pet Foods|Cecil Plow": 28.0, "Cecil Plow|Mars Pet Foods": 28.0, "Mars Pet Foods|Greenwood": 18.0, "Greenwood|Mars Pet Foods": 18.0, "Mars Pet Foods|Paris Bottoms": 43.0, "Paris Bottoms|Mars Pet Foods": 43.0, "Tyson Ft Smith|Hackett": 24.0, "Hackett|Tyson Ft Smith": 24.0, "Tyson Ft Smith|Nebo": 10.0, "Nebo|Tyson Ft Smith": 10.0, "Tyson Ft Smith|Highway 59": 8.0, "Highway 59|Tyson Ft Smith": 8.0, "Tyson Ft Smith|Hydro Ag Mulberry Plow": 28.0, "Hydro Ag Mulberry Plow|Tyson Ft Smith": 28.0, "Tyson Ft Smith|Allens Canning": 82.0, "Allens Canning|Tyson Ft Smith": 82.0, "Tyson Ft Smith|Kibler Plow Sites and Storage": 18.0, "Kibler Plow Sites and Storage|Tyson Ft Smith": 18.0, "Tyson Ft Smith|Cecil Plow": 35.0, "Cecil Plow|Tyson Ft Smith": 35.0, "Tyson Ft Smith|Greenwood": 28.0, "Greenwood|Tyson Ft Smith": 28.0, "Tyson Ft Smith|Paris Bottoms": 52.0, "Paris Bottoms|Tyson Ft Smith": 52.0, "Gerber|Hackett": 24.0, "Hackett|Gerber": 24.0, "Gerber|Nebo": 8.0, "Nebo|Gerber": 8.0, "Gerber|Highway 59": 6.0, "Highway 59|Gerber": 6.0, "Gerber|Hydro Ag Mulberry Plow": 25.0, "Hydro Ag Mulberry Plow|Gerber": 25.0, "Gerber|Natural Dam": 20.0, "Natural Dam|Gerber": 20.0, "Gerber|Allens Canning": 80.0, "Allens Canning|Gerber": 80.0, "Gerber|Kibler Plow Sites and Storage": 14.0, "Kibler Plow Sites and Storage|Gerber": 14.0, "Gerber|Cecil Plow": 44.0, "Cecil Plow|Gerber": 44.0, "Gerber|Greenwood": 31.0, "Greenwood|Gerber": 31.0, "Gerber|Paris Bottoms": 52.0, "Paris Bottoms|Gerber": 52.0, "Tate & Lyle|Hackett": 25.0, "Hackett|Tate & Lyle": 25.0, "Tate & Lyle|Nebo": 5.0, "Nebo|Tate & Lyle": 5.0, "Tate & Lyle|Highway 59": 3.0, "Highway 59|Tate & Lyle": 3.0, "Tate & Lyle|Hydro Ag Mulberry Plow": 22.0, "Hydro Ag Mulberry Plow|Tate & Lyle": 22.0, "Tate & Lyle|Natural Dam": 22.0, "Natural Dam|Tate & Lyle": 22.0, "Tate & Lyle|Allens Canning": 78.0, "Allens Canning|Tate & Lyle": 78.0, "Tate & Lyle|Kibler Plow Sites and Storage": 12.0, "Kibler Plow Sites and Storage|Tate & Lyle": 12.0, "Tate & Lyle|Cecil Plow": 41.0, "Cecil Plow|Tate & Lyle": 41.0, "Tate & Lyle|Greenwood": 32.0, "Greenwood|Tate & Lyle": 32.0, "Tate & Lyle|Paris Bottoms": 49.0, "Paris Bottoms|Tate & Lyle": 49.0, "Planters|Hackett": 15.0, "Hackett|Planters": 15.0, "Planters|Nebo": 12.0, "Nebo|Planters": 12.0, "Planters|Highway 59": 14.0, "Highway 59|Planters": 14.0, "Planters|Hydro Ag Mulberry Plow": 33.0, "Hydro Ag Mulberry Plow|Planters": 33.0, "Planters|Allens Canning": 87.0, "Allens Canning|Planters": 87.0, "Planters|Kibler Plow Sites and Storage": 23.0, "Kibler Plow Sites and Storage|Planters": 23.0, "Planters|Cecil Plow": 39.0, "Cecil Plow|Planters": 39.0, "Planters|Greenwood": 21.0, "Greenwood|Planters": 21.0, "Planters|Paris Bottoms": 48.0, "Paris Bottoms|Planters": 48.0, "Zero Mtn|Hackett": 15.0, "Hackett|Zero Mtn": 15.0, "Zero Mtn|Nebo": 13.0, "Nebo|Zero Mtn": 13.0, "Zero Mtn|Highway 59": 13.0, "Highway 59|Zero Mtn": 13.0, "Zero Mtn|Hydro Ag Mulberry Plow": 32.0, "Hydro Ag Mulberry Plow|Zero Mtn": 32.0, "Zero Mtn|Allens Canning": 87.0, "Allens Canning|Zero Mtn": 87.0, "Zero Mtn|Kibler Plow Sites and Storage": 22.0, "Kibler Plow Sites and Storage|Zero Mtn": 22.0, "Zero Mtn|Cecil Plow": 39.0, "Cecil Plow|Zero Mtn": 39.0, "Zero Mtn|Greenwood": 21.0, "Greenwood|Zero Mtn": 21.0, "Zero Mtn|Paris Bottoms": 48.0, "Paris Bottoms|Zero Mtn": 48.0, "Tyson Waldron|Hackett": 34.0, "Hackett|Tyson Waldron": 34.0, "Tyson Waldron|Nebo": 47.0, "Nebo|Tyson Waldron": 47.0, "Tyson Waldron|Highway 59": 47.0, "Highway 59|Tyson Waldron": 47.0, "Tyson Waldron|Hydro Ag Mulberry Plow": 71.0, "Hydro Ag Mulberry Plow|Tyson Waldron": 71.0, "Tyson Waldron|Allens Canning": 126.0, "Allens Canning|Tyson Waldron": 126.0, "Tyson Waldron|Kibler Plow Sites and Storage": 61.0, "Kibler Plow Sites and Storage|Tyson Waldron": 61.0, "Tyson Waldron|Cecil Plow": 53.0, "Cecil Plow|Tyson Waldron": 53.0, "Tyson Waldron|Greenwood": 28.0, "Greenwood|Tyson Waldron": 28.0, "Tyson Waldron|Paris Bottoms": 25.0, "Paris Bottoms|Tyson Waldron": 25.0, "Hiland Dairy|Hackett": 17.0, "Hackett|Hiland Dairy": 17.0, "Hiland Dairy|Nebo": 11.0, "Nebo|Hiland Dairy": 11.0, "Hiland Dairy|Highway 59": 9.0, "Highway 59|Hiland Dairy": 9.0, "Hiland Dairy|Hydro Ag Mulberry Plow": 29.0, "Hydro Ag Mulberry Plow|Hiland Dairy": 29.0, "Hiland Dairy|Allens Canning": 84.0, "Allens Canning|Hiland Dairy": 84.0, "Hiland Dairy|Kibler Plow Sites and Storage": 18.0, "Kibler Plow Sites and Storage|Hiland Dairy": 18.0, "Hiland Dairy|Cecil Plow": 41.0, "Cecil Plow|Hiland Dairy": 41.0, "Hiland Dairy|Shale Pit": 24.0, "Shale Pit|Hiland Dairy": 24.0, "Hiland Dairy|Possum Hollow Rd": 29.0, "Possum Hollow Rd|Hiland Dairy": 29.0, "Hiland Dairy|The Bull": 27.0, "The Bull|Hiland Dairy": 27.0, "Hiland Dairy|Barton Rd": 28.0, "Barton Rd|Hiland Dairy": 28.0, "Hiland Dairy|Paris Bottoms": 49.0, "Paris Bottoms|Hiland Dairy": 49.0, "Twin Rivers|Hackett": 17.0, "Hackett|Twin Rivers": 17.0, "Twin Rivers|Nebo": 12.0, "Nebo|Twin Rivers": 12.0, "Twin Rivers|Highway 59": 9.0, "Highway 59|Twin Rivers": 9.0, "Twin Rivers|Hydro Ag Mulberry Plow": 29.0, "Hydro Ag Mulberry Plow|Twin Rivers": 29.0, "Twin Rivers|Kibler Plow Sites and Storage": 20.0, "Kibler Plow Sites and Storage|Twin Rivers": 20.0, "Twin Rivers|Allens Canning": 87.0, "Allens Canning|Twin Rivers": 87.0, "Twin Rivers|Cecil Plow": 41.0, "Cecil Plow|Twin Rivers": 41.0, "Twin Rivers|Greenwood": 28.0, "Greenwood|Twin Rivers": 28.0, "Twin Rivers|Paris Bottoms": 50.0, "Paris Bottoms|Twin Rivers": 50.0, "Hiram Walker|Hackett": 14.0, "Hackett|Hiram Walker": 14.0, "Hiram Walker|Nebo": 13.0, "Nebo|Hiram Walker": 13.0, "Hiram Walker|Highway 59": 13.0, "Highway 59|Hiram Walker": 13.0, "Hiram Walker|Hydro Ag Mulberry Plow": 32.0, "Hydro Ag Mulberry Plow|Hiram Walker": 32.0, "Hiram Walker|Kibler Plow Sites and Storage": 21.0, "Kibler Plow Sites and Storage|Hiram Walker": 21.0, "Hiram Walker|Allens Canning": 87.0, "Allens Canning|Hiram Walker": 87.0, "Hiram Walker|Cecil Plow": 37.0, "Cecil Plow|Hiram Walker": 37.0, "Hiram Walker|Greenwood": 28.0, "Greenwood|Hiram Walker": 28.0, "Hiram Walker|Paris Bottoms": 47.0, "Paris Bottoms|Hiram Walker": 47.0, "Moses Plumbing|Hackett": 30.0, "Hackett|Moses Plumbing": 30.0, "Moses Plumbing|Nebo": 10.0, "Nebo|Moses Plumbing": 10.0, "Moses Plumbing|Highway 59": 9.0, "Highway 59|Moses Plumbing": 9.0, "Moses Plumbing|Hydro Ag Mulberry Plow": 19.0, "Hydro Ag Mulberry Plow|Moses Plumbing": 19.0, "Moses Plumbing|Allens Canning": 76.0, "Allens Canning|Moses Plumbing": 76.0, "Moses Plumbing|Kibler Plow Sites and Storage": 6.0, "Kibler Plow Sites and Storage|Moses Plumbing": 6.0, "Moses Plumbing|Cecil Plow": 45.0, "Cecil Plow|Moses Plumbing": 45.0, "Moses Plumbing|Greenwood": 38.0, "Greenwood|Moses Plumbing": 38.0, "Moses Plumbing|Paris Bottoms": 53.0, "Paris Bottoms|Moses Plumbing": 53.0, "West Ark Plumbing|Hackett": 14.0, "Hackett|West Ark Plumbing": 14.0, "West Ark Plumbing|Nebo": 14.0, "Nebo|West Ark Plumbing": 14.0, "West Ark Plumbing|Highway 59": 12.0, "Highway 59|West Ark Plumbing": 12.0, "West Ark Plumbing|Hydro Ag Mulberry Plow": 32.0, "Hydro Ag Mulberry Plow|West Ark Plumbing": 32.0, "West Ark Plumbing|Kibler Plow Sites and Storage": 22.0, "Kibler Plow Sites and Storage|West Ark Plumbing": 22.0, "West Ark Plumbing|Allens Canning": 86.0, "Allens Canning|West Ark Plumbing": 86.0, "West Ark Plumbing|Cecil Plow": 37.0, "Cecil Plow|West Ark Plumbing": 37.0, "West Ark Plumbing|Greenwood": 22.0, "Greenwood|West Ark Plumbing": 22.0, "West Ark Plumbing|Paris Bottoms": 47.0, "Paris Bottoms|West Ark Plumbing": 47.0, "Pro Rooter|Hackett": 19.0, "Hackett|Pro Rooter": 19.0, "Pro Rooter|Nebo": 10.0, "Nebo|Pro Rooter": 10.0, "Pro Rooter|Highway 59": 17.0, "Highway 59|Pro Rooter": 17.0, "Pro Rooter|Allens Canning": 91.0, "Allens Canning|Pro Rooter": 91.0, "Pro Rooter|Hydro Ag Mulberry Plow": 36.0, "Hydro Ag Mulberry Plow|Pro Rooter": 36.0, "Pro Rooter|Kibler Plow Sites and Storage": 26.0, "Kibler Plow Sites and Storage|Pro Rooter": 26.0, "Pro Rooter|Cecil Plow": 41.0, "Cecil Plow|Pro Rooter": 41.0, "Pro Rooter|Greenwood": 25.0, "Greenwood|Pro Rooter": 25.0, "Pro Rooter|Paris Bottoms": 52.0, "Paris Bottoms|Pro Rooter": 52.0, "Drain Masters|Hackett": 15.0, "Hackett|Drain Masters": 15.0, "Drain Masters|Nebo": 20.0, "Nebo|Drain Masters": 20.0, "Drain Masters|Highway 59": 19.0, "Highway 59|Drain Masters": 19.0, "Drain Masters|Allens Canning": 93.0, "Allens Canning|Drain Masters": 93.0, "Drain Masters|Hydro Ag Mulberry Plow": 39.0, "Hydro Ag Mulberry Plow|Drain Masters": 39.0, "Drain Masters|Kibler Plow Sites and Storage": 28.0, "Kibler Plow Sites and Storage|Drain Masters": 28.0, "Drain Masters|Cecil Plow": 43.0, "Cecil Plow|Drain Masters": 43.0, "Drain Masters|Greenwood": 27.0, "Greenwood|Drain Masters": 27.0, "Butterball Ozark|Hackett": 58.0, "Hackett|Butterball Ozark": 58.0, "Butterball Ozark|Nebo": 40.0, "Nebo|Butterball Ozark": 40.0, "Butterball Ozark|Highway 59": 39.0, "Highway 59|Butterball Ozark": 39.0, "Butterball Ozark|Hydro Ag Mulberry Plow": 15.0, "Hydro Ag Mulberry Plow|Butterball Ozark": 15.0, "Butterball Ozark|Allens Canning": 97.0, "Allens Canning|Butterball Ozark": 97.0, "Butterball Ozark|Kibler Plow Sites and Storage": 36.0, "Kibler Plow Sites and Storage|Butterball Ozark": 36.0, "Butterball Ozark|Cecil Plow": 14.0, "Cecil Plow|Butterball Ozark": 14.0, "Butterball Ozark|Greenwood": 66.0, "Greenwood|Butterball Ozark": 66.0, "Keith Smith|Hackett": 40.0, "Hackett|Keith Smith": 40.0, "Keith Smith|Nebo": 19.0, "Nebo|Keith Smith": 19.0, "Keith Smith|Highway 59": 18.0, "Highway 59|Keith Smith": 18.0, "Keith Smith|Allens Canning": 53.0, "Allens Canning|Keith Smith": 53.0, "Keith Smith|Hydro Ag Mulberry Plow": 35.0, "Hydro Ag Mulberry Plow|Keith Smith": 35.0, "Keith Smith|Kibler Plow Sites and Storage": 30.0, "Kibler Plow Sites and Storage|Keith Smith": 30.0, "Keith Smith|Cecil Plow": 59.0, "Cecil Plow|Keith Smith": 59.0, "Keith Smith|Greenwood": 47.0, "Greenwood|Keith Smith": 47.0, "Nebo|Hackett": 25.0, "Hackett|Nebo": 25.0, "Nebo|Highway 59": 1.0, "Highway 59|Nebo": 1.0, "Nebo|Hydro Ag Mulberry Plow": 27.0, "Hydro Ag Mulberry Plow|Nebo": 27.0, "Nebo|Kibler Plow Sites and Storage": 16.0, "Kibler Plow Sites and Storage|Nebo": 16.0, "Nebo|Cecil Plow": 37.0, "Cecil Plow|Nebo": 37.0, "Nebo|Greenwood": 29.0, "Greenwood|Nebo": 29.0, "Kibler Storage Tanks|Hackett": 34.0, "Hackett|Kibler Storage Tanks": 34.0, "Kibler Storage Tanks|Nebo": 10.0, "Nebo|Kibler Storage Tanks": 10.0, "Kibler Storage Tanks|Highway 59": 14.0, "Highway 59|Kibler Storage Tanks": 14.0, "Kibler Storage Tanks|Hydro Ag Mulberry Plow": 22.0, "Hydro Ag Mulberry Plow|Kibler Storage Tanks": 22.0, "Kibler Storage Tanks|Allens Canning": 80.0, "Allens Canning|Kibler Storage Tanks": 80.0, "Kibler Storage Tanks|Kibler Plow Sites and Storage": 1.0, "Kibler Plow Sites and Storage|Kibler Storage Tanks": 1.0, "Kibler Storage Tanks|Cecil Plow": 52.0, "Cecil Plow|Kibler Storage Tanks": 52.0, "Kibler Storage Tanks|Greenwood": 42.0, "Greenwood|Kibler Storage Tanks": 42.0, "Van Buren Yard|Lowell": 66.0, "Lowell|Van Buren Yard": 66.0, "Van Buren Yard|Simmons New Plant (Cook Plant)": 4.0, "Simmons New Plant (Cook Plant)|Van Buren Yard": 4.0, "Van Buren Yard|Simmons Old Plant (Main Plant)": 4.0, "Simmons Old Plant (Main Plant)|Van Buren Yard": 4.0, "Van Buren Yard|OK Foods Fort Smith": 6.0, "OK Foods Fort Smith|Van Buren Yard": 6.0, "Van Buren Yard|Mars Pet Foods": 15.0, "Mars Pet Foods|Van Buren Yard": 15.0, "Van Buren Yard|Tyson Ft Smith": 8.0, "Tyson Ft Smith|Van Buren Yard": 8.0, "Van Buren Yard|Gerber": 6.0, "Gerber|Van Buren Yard": 6.0, "Van Buren Yard|Tate & Lyle": 4.0, "Tate & Lyle|Van Buren Yard": 4.0, "Van Buren Yard|Planters": 15.0, "Planters|Van Buren Yard": 15.0, "Van Buren Yard|Zero Mtn": 15.0, "Zero Mtn|Van Buren Yard": 15.0, "Van Buren Yard|Highway 59": 6.0, "Highway 59|Van Buren Yard": 6.0, "Van Buren Yard|Tyson Waldron": 53.0, "Tyson Waldron|Van Buren Yard": 53.0, "Van Buren Yard|Hiland Dairy": 10.0, "Hiland Dairy|Van Buren Yard": 10.0, "Van Buren Yard|Twin Rivers": 11.0, "Twin Rivers|Van Buren Yard": 11.0, "Van Buren Yard|Hiram Walker": 14.0, "Hiram Walker|Van Buren Yard": 14.0, "Van Buren Yard|Moses Plumbing": 5.0, "Moses Plumbing|Van Buren Yard": 5.0, "Van Buren Yard|West Ark Plumbing": 13.0, "West Ark Plumbing|Van Buren Yard": 13.0, "Van Buren Yard|Pro Rooter": 18.0, "Pro Rooter|Van Buren Yard": 18.0, "Van Buren Yard|Drain Masters": 19.0, "Drain Masters|Van Buren Yard": 19.0, "Van Buren Yard|Butterball Ozark": 34.0, "Butterball Ozark|Van Buren Yard": 34.0, "Van Buren Yard|Keith Smith": 17.0, "Keith Smith|Van Buren Yard": 17.0, "Van Buren Yard|Nebo": 8.0, "Nebo|Van Buren Yard": 8.0, "Van Buren Yard|Hackett": 28.0, "Hackett|Van Buren Yard": 28.0, "Van Buren Yard|Kibler Storage Tanks": 10.0, "Kibler Storage Tanks|Van Buren Yard": 10.0, "Van Buren Yard|Tyson of Rogers": 73.0, "Tyson of Rogers|Van Buren Yard": 73.0, "Van Buren Yard|Cargill Live Haul Springdale": 65.0, "Cargill Live Haul Springdale|Van Buren Yard": 65.0, "Van Buren Yard|Cargill Feedmill": 59.0, "Cargill Feedmill|Van Buren Yard": 59.0, "Van Buren Yard|Tyson Randall Road + Tyson Truck Stop": 64.0, "Tyson Randall Road + Tyson Truck Stop|Van Buren Yard": 64.0, "Van Buren Yard|Tyson Johnson Road": 58.0, "Tyson Johnson Road|Van Buren Yard": 58.0, "Van Buren Yard|Southeastern Poultry": 76.0, "Southeastern Poultry|Van Buren Yard": 76.0, "Tyson Research and Development|Chick n Quick": 71.0, "Chick n Quick|Tyson Research and Development": 71.0, "Tyson Research and Development|OMP (Ozark Mtn Poultry)": 77.0, "OMP (Ozark Mtn Poultry)|Tyson Research and Development": 77.0, "Tyson Research and Development|Tyson Berry Street": 64.0, "Tyson Berry Street|Tyson Research and Development": 64.0, "Tyson Research and Development|Southwest City": 110.0, "Southwest City|Tyson Research and Development": 110.0, "Tyson Research and Development|Cobb Vantress (truckwash + hatchery)": 77.0, "Cobb Vantress (truckwash + hatchery)|Tyson Research and Development": 77.0, "Tyson Research and Development|Simmons Treats/truckwash/wetpet": 64.0, "Simmons Treats/truckwash/wetpet|Tyson Research and Development": 64.0, "Tyson Research and Development|Simmons Benton County": 87.0, "Simmons Benton County|Tyson Research and Development": 87.0, "Tyson Research and Development|Simmons Feedmill Decatur/Wellness pet": 98.0, "Simmons Feedmill Decatur/Wellness pet|Tyson Research and Development": 98.0, "Tyson Research and Development|Simmons Old Decatur Plant": 89.0, "Simmons Old Decatur Plant|Tyson Research and Development": 89.0, "Tyson Research and Development|Mckee Foods": 84.0, "Mckee Foods|Tyson Research and Development": 84.0, "Tyson Research and Development|Tyson Berryville": 110.0, "Tyson Berryville|Tyson Research and Development": 110.0, "Tyson Research and Development|Tyson Green Forest": 113.0, "Tyson Green Forest|Tyson Research and Development": 113.0, "Tyson Research and Development|ButterBall Huntsville": 81.0, "ButterBall Huntsville|Tyson Research and Development": 81.0, "Tyson Research and Development|Berryville Pit": 107.0, "Berryville Pit|Tyson Research and Development": 107.0, "Tyson Research and Development|Green Forest Fracs/ YARD": 112.0, "Green Forest Fracs/ YARD|Tyson Research and Development": 112.0, "Tyson Foods Bergman Feed Mill|Tyson Berryville": 37.0, "Tyson Berryville|Tyson Foods Bergman Feed Mill": 37.0, "Tyson Berryville|Shell Knob": 21.0, "Shell Knob|Tyson Berryville": 21.0, "Tyson Berryville|Harrison": 36.0, "Harrison|Tyson Berryville": 36.0, "Tyson Berryville|ROARK": 41.0, "ROARK|Tyson Berryville": 41.0, "Tyson Berryville|Hindsville": 40.0, "Hindsville|Tyson Berryville": 40.0, "Tyson Berryville|Hackett": 134.0, "Hackett|Tyson Berryville": 134.0, "Tyson Berryville|Durham": 59.0, "Durham|Tyson Berryville": 59.0, "Tyson Berryville|Gravette": 76.0, "Gravette|Tyson Berryville": 76.0, "Tyson Berryville|Allens Canning": 71.0, "Allens Canning|Tyson Berryville": 71.0, "Tyson Berryville|Van Buren Yard": 111.0, "Van Buren Yard|Tyson Berryville": 111.0, "Tyson Berryville|Kibler Plow Sites and Storage": 112.0, "Kibler Plow Sites and Storage|Tyson Berryville": 112.0, "Tyson Berryville|Highway 59": 114.0, "Highway 59|Tyson Berryville": 114.0, "Tyson Berryville|Nebo": 114.0, "Nebo|Tyson Berryville": 114.0, "Tyson Berryville|Wesley": 45.0, "Wesley|Tyson Berryville": 45.0, "Tyson Berryville|Berryville Pit": 2.6, "Berryville Pit|Tyson Berryville": 2.6, "Tyson Berryville|Green Forest Fracs/ YARD": 8.0, "Green Forest Fracs/ YARD|Tyson Berryville": 8.0, "Tyson Green Forest|Shell Knob": 30.0, "Shell Knob|Tyson Green Forest": 30.0, "Tyson Green Forest|Harrison": 27.0, "Harrison|Tyson Green Forest": 27.0, "Tyson Green Forest|ROARK": 51.0, "ROARK|Tyson Green Forest": 51.0, "Tyson Green Forest|Hackett": 137.0, "Hackett|Tyson Green Forest": 137.0, "Tyson Green Forest|Hindsville": 43.0, "Hindsville|Tyson Green Forest": 43.0, "Tyson Green Forest|Durham": 62.0, "Durham|Tyson Green Forest": 62.0, "Tyson Green Forest|Gravette": 85.0, "Gravette|Tyson Green Forest": 85.0, "Tyson Green Forest|Allens Canning": 81.0, "Allens Canning|Tyson Green Forest": 81.0, "Tyson Green Forest|Van Buren Yard": 114.0, "Van Buren Yard|Tyson Green Forest": 114.0, "Tyson Green Forest|Kibler Plow Sites and Storage": 116.0, "Kibler Plow Sites and Storage|Tyson Green Forest": 116.0, "Tyson Green Forest|Highway 59": 118.0, "Highway 59|Tyson Green Forest": 118.0, "Tyson Green Forest|Nebo": 119.0, "Nebo|Tyson Green Forest": 119.0, "Tyson Green Forest|Wesley": 48.0, "Wesley|Tyson Green Forest": 48.0, "Tyson Green Forest|Berryville Pit": 12.0, "Berryville Pit|Tyson Green Forest": 12.0, "Tyson Green Forest|Green Forest Fracs/ YARD": 1.0, "Green Forest Fracs/ YARD|Tyson Green Forest": 1.0, "ButterBall Huntsville|Hindsville": 11.0, "Hindsville|ButterBall Huntsville": 11.0, "ButterBall Huntsville|Hackett": 103.0, "Hackett|ButterBall Huntsville": 103.0, "ButterBall Huntsville|Durham": 28.0, "Durham|ButterBall Huntsville": 28.0, "ButterBall Huntsville|Gravette": 74.0, "Gravette|ButterBall Huntsville": 74.0, "ButterBall Huntsville|Allens Canning": 48.0, "Allens Canning|ButterBall Huntsville": 48.0, "ButterBall Huntsville|Van Buren Yard": 80.0, "Van Buren Yard|ButterBall Huntsville": 80.0, "ButterBall Huntsville|Kibler Plow Sites and Storage": 83.0, "Kibler Plow Sites and Storage|ButterBall Huntsville": 83.0, "ButterBall Huntsville|Highway 59": 84.0, "Highway 59|ButterBall Huntsville": 84.0, "ButterBall Huntsville|Nebo": 83.0, "Nebo|ButterBall Huntsville": 83.0, "ButterBall Huntsville|Wesley": 14.0, "Wesley|ButterBall Huntsville": 14.0, "Green Forest Fracs/ YARD|Hindsville": 42.0, "Hindsville|Green Forest Fracs/ YARD": 42.0, "Green Forest Fracs/ YARD|Hackett": 136.0, "Hackett|Green Forest Fracs/ YARD": 136.0, "Green Forest Fracs/ YARD|Durham": 61.0, "Durham|Green Forest Fracs/ YARD": 61.0, "Green Forest Fracs/ YARD|Gravette": 107.0, "Gravette|Green Forest Fracs/ YARD": 107.0, "Green Forest Fracs/ YARD|Van Buren Yard": 111.0, "Van Buren Yard|Green Forest Fracs/ YARD": 111.0, "Green Forest Fracs/ YARD|Kibler Plow Sites and Storage": 116.0, "Kibler Plow Sites and Storage|Green Forest Fracs/ YARD": 116.0, "Green Forest Fracs/ YARD|Highway 59": 116.0, "Highway 59|Green Forest Fracs/ YARD": 116.0, "Green Forest Fracs/ YARD|Wesley": 47.0, "Wesley|Green Forest Fracs/ YARD": 47.0, "Green Forest Fracs/ YARD|Nebo": 116.0, "Nebo|Green Forest Fracs/ YARD": 116.0, "Berryville Pit|Hindsville": 42.0, "Hindsville|Berryville Pit": 42.0, "Berryville Pit|Durham": 58.0, "Durham|Berryville Pit": 58.0, "Berryville Pit|Gravette": 105.0, "Gravette|Berryville Pit": 105.0, "Berryville Pit|Van Buren Yard": 108.0, "Van Buren Yard|Berryville Pit": 108.0, "Berryville Pit|Kibler Plow Sites and Storage": 110.0, "Kibler Plow Sites and Storage|Berryville Pit": 110.0, "Berryville Pit|Highway 59": 111.0, "Highway 59|Berryville Pit": 111.0, "Berryville Pit|Wesley": 47.0, "Wesley|Berryville Pit": 47.0, "Berryville Pit|Nebo": 113.0, "Nebo|Berryville Pit": 113.0, "Shell Knob|Hindsville": 58.0, "Hindsville|Shell Knob": 58.0, "Shell Knob|Durham": 80.0, "Durham|Shell Knob": 80.0, "Shell Knob|Gravette": 79.0, "Gravette|Shell Knob": 79.0, "Shell Knob|Lowell": 54.0, "Lowell|Shell Knob": 54.0, "Shell Knob|Van Buren Yard": 125.0, "Van Buren Yard|Shell Knob": 125.0, "Shell Knob|Kibler Plow Sites and Storage": 127.0, "Kibler Plow Sites and Storage|Shell Knob": 127.0, "Shell Knob|Highway 59": 128.0, "Highway 59|Shell Knob": 128.0, "Shell Knob|Wesley": 66.0, "Wesley|Shell Knob": 66.0, "Shell Knob|Nebo": 130.0, "Nebo|Shell Knob": 130.0, "Harrison|Hindsville": 61.0, "Hindsville|Harrison": 61.0, "Harrison|Durham": 80.0, "Durham|Harrison": 80.0, "Harrison|Gravette": 120.0, "Gravette|Harrison": 120.0, "Harrison|Lowell": 84.0, "Lowell|Harrison": 84.0, "Harrison|Van Buren Yard": 132.0, "Van Buren Yard|Harrison": 132.0, "Harrison|Kibler Plow Sites and Storage": 135.0, "Kibler Plow Sites and Storage|Harrison": 135.0, "Harrison|Highway 59": 135.0, "Highway 59|Harrison": 135.0, "Harrison|Wesley": 66.0, "Wesley|Harrison": 66.0, "Harrison|Nebo": 137.0, "Nebo|Harrison": 137.0, "ROARK|Hindsville": 64.0, "Hindsville|ROARK": 64.0, "ROARK|Durham": 80.0, "Durham|ROARK": 80.0, "ROARK|Gravette": 60.0, "Gravette|ROARK": 60.0, "ROARK|Lowell": 42.0, "Lowell|ROARK": 42.0, "ROARK|Van Buren Yard": 112.0, "Van Buren Yard|ROARK": 112.0, "ROARK|Kibler Plow Sites and Storage": 115.0, "Kibler Plow Sites and Storage|ROARK": 115.0, "ROARK|Highway 59": 116.0, "Highway 59|ROARK": 116.0, "ROARK|Wesley": 74.0, "Wesley|ROARK": 74.0, "ROARK|Nebo": 118.0, "Nebo|ROARK": 118.0, "Advanced Micro|Kibler Plow Sites and Storage": 142.0, "Kibler Plow Sites and Storage|Advanced Micro": 142.0, "Advanced Micro|Allens Canning": 102.0, "Allens Canning|Advanced Micro": 102.0, "Advanced Micro|Hackett": 143.0, "Hackett|Advanced Micro": 143.0, "Advanced Micro|Nebo": 138.0, "Nebo|Advanced Micro": 138.0, "Advanced Micro|Highway 59": 136.0, "Highway 59|Advanced Micro": 136.0, "Advanced Micro|Hydro Ag Mulberry Plow": 151.0, "Hydro Ag Mulberry Plow|Advanced Micro": 151.0, "Advanced Micro|Cecil": 168.0, "Cecil|Advanced Micro": 168.0, "Advanced Micro|Greenwood": 151.0, "Greenwood|Advanced Micro": 151.0, "Advanced Micro|Gravette": 109.0, "Gravette|Advanced Micro": 109.0, "Bluebell|Kibler Plow Sites and Storage": 115.0, "Kibler Plow Sites and Storage|Bluebell": 115.0, "Bluebell|Allens Canning": 85.0, "Allens Canning|Bluebell": 85.0, "Bluebell|Hackett": 116.0, "Hackett|Bluebell": 116.0, "Bluebell|Nebo": 111.0, "Nebo|Bluebell": 111.0, "Bluebell|Highway 59": 109.0, "Highway 59|Bluebell": 109.0, "Bluebell|Hydro Ag Mulberry Plow": 124.0, "Hydro Ag Mulberry Plow|Bluebell": 124.0, "Bluebell|Cecil": 141.0, "Cecil|Bluebell": 141.0, "Bluebell|Greenwood": 124.0, "Greenwood|Bluebell": 124.0, "Bluebell|Gravette": 109.0, "Gravette|Bluebell": 109.0, "Bakey Feeds|Kibler Plow Sites and Storage": 72.0, "Kibler Plow Sites and Storage|Bakey Feeds": 72.0, "Bakey Feeds|Allens Canning": 15.0, "Allens Canning|Bakey Feeds": 15.0, "Bakey Feeds|Hackett": 86.0, "Hackett|Bakey Feeds": 86.0, "Bakey Feeds|Nebo": 65.0, "Nebo|Bakey Feeds": 65.0, "Bakey Feeds|Highway 59": 64.0, "Highway 59|Bakey Feeds": 64.0, "Bakey Feeds|Hydro Ag Mulberry Plow": 85.0, "Hydro Ag Mulberry Plow|Bakey Feeds": 85.0, "Bakey Feeds|Cecil": 110.0, "Cecil|Bakey Feeds": 110.0, "Bakey Feeds|Greenwood": 94.0, "Greenwood|Bakey Feeds": 94.0, "Bakey Feeds|Gravette": 28.0, "Gravette|Bakey Feeds": 28.0, "Schwanns|Hackett": 66.0, "Hackett|Schwanns": 66.0, "Schwanns|Allens Canning": 38.0, "Allens Canning|Schwanns": 38.0, "Schwanns|Nebo": 48.0, "Nebo|Schwanns": 48.0, "Schwanns|Kibler Plow Sites and Storage": 53.0, "Kibler Plow Sites and Storage|Schwanns": 52.0, "Schwanns|Highway 59": 47.0, "Highway 59|Schwanns": 47.0, "Schwanns|Hydro Ag Mulberry Plow": 61.0, "Hydro Ag Mulberry Plow|Schwanns": 61.0, "Schwanns|Cecil Plow": 85.0, "Cecil Plow|Schwanns": 85.0, "Schwanns|Greenwood": 73.0, "Greenwood|Schwanns": 73.0, "OK Foods Heavener|Hackett": 34.0, "Hackett|OK Foods Heavener": 34.0, "OK Foods Heavener|Nebo": 50.0, "Nebo|OK Foods Heavener": 50.0, "OK Foods Heavener|Highway 59": 49.0, "Highway 59|OK Foods Heavener": 49.0, "OK Foods Heavener|Hydro Ag Mulberry Plow": 69.0, "Hydro Ag Mulberry Plow|OK Foods Heavener": 69.0, "OK Foods Heavener|Kibler Plow Sites and Storage": 56.0, "Kibler Plow Sites and Storage|OK Foods Heavener": 59.0, "OK Foods Heavener|Cecil Plow": 74.0, "Cecil Plow|OK Foods Heavener": 74.0, "OK Foods Heavener|Greenwood": 48.0, "Greenwood|OK Foods Heavener": 48.0, "OK Foods Heavener|Paris Bottoms": 59.0, "Paris Bottoms|OK Foods Heavener": 59.0, "OK Foods Heavener|Denali Plow Ozark": 86.0, "Denali Plow Ozark|OK Foods Heavener": 86.0, "OK Foods Heavener|Allen Gas Station": 22.0, "Allen Gas Station|OK Foods Heavener": 22.0, "OK Foods Heavener|Allens Canning": 123.0, "Allens Canning|OK Foods Heavener": 123.0};
-const STORAGE_KEY = "jb-hunt-denali-tracker-v1";
+const LOCATION_ADDRESSES = {"Advanced Micro": "5738 S 116th W Avenue Sand Springs, OK 74083", "Allen Gas Station": "25733 Old Hwy 112, Cameron, OK 74932, USA", "Allens Canning": "14994 Readings Rd Siloam Springs, AR 72761", "Bakey Feeds": "701 E 7th St #6, Watts OK 74964", "Barton Rd": "5805 Barton Rd, Huntington, AR 72940", "Berryville Pit": "49 Carroll 404 Rd, Berryville, AR 72616", "Bluebell": "8201 E Highway 51 Broken Arrow, OK 74014", "ButterBall Huntsville": "1294 N College St, Huntsville, AR 72740", "Butterball Ozark": "307 Dodgen Pl, Ozark, AR 72949", "Cargill Feedmill": "2201 Long Street Springdale AR 72764", "Cargill Live Haul Springdale": "730 E Randall Wobbe Lane Springdale AR 72764", "Cecil": "4321 Valley Creek Rd, Cecil, AR 72930", "Cecil Plow": "4321 Valley Creek Rd, Cecil, AR 72930", "Chick n Quick": "400 W Olrich St. Rogers, AR 72756", "Cobb Vantress (truckwash + hatchery)": "4703 US-412, Siloam Springs, AR 72761", "Denali Plow Ozark": "5441 AR-309 Ozark AR 72949", "Drain Masters": "106 Folsom Blvd, Pocola, OK 74902", "Durham": "12228-11840 AR-16 Scenic, Fayetteville, AR 72704", "Gerber": "4301 Harriet Ave, Fort Smith, AR 72904", "Gravette": "14493 Mullens Rd, Sulphur Springs, AR 72768", "Green Forest Fracs/ YARD": "904 W Main St, Green Forest, Ar 72638", "Greenwood": "5805 Barton Rd, Huntington, AR 72940", "Hackett": "4201 Scotts Way Hackett AR 72937", "Harrison": "4281 US-65, Harrison, AR 72601", "Highway 59": "3320 S Hwy 59, Van Buren 72956", "Hiland Dairy": "415 S 10th St, Fort Smith, AR 72901", "Hindsville": "1585 Madison 7505, Hindsville, AR 72738", "Hiram Walker": "7401 State Hwy 45, Fort Smith, AR 72916", "Hydro Ag Mulberry Plow": "Co Rd 439, Mulberry, AR 72947", "Keith Smith": "12530 AR-59, Cedarville, AR 72932", "Kibler Plow Sites and Storage": "3624 Cross Lanes Rd, Alma, AR 72921", "Kibler Storage Tanks": "3624 Cross Lanes Rd, Alma, AR 72921", "Lowell": "US 71-B/ N Bloomington St Lowell, AR  72745", "Mars Pet Foods": "10000 Roberts Blvd, Fort Smith, AR 72916", "Mckee Foods": "555 McKee Dr, Gentry, AR 72734", "Moses Plumbing": "545 Gilmore Dr, Van Buren, AR 72956", "Natural Dam": "3129 Burchfiel Mountain Trail, Uniontown, AR 72955", "Nebo": "Hale Farm Road, Van Buren AR 72956", "OK Foods Fort Smith": "4201 Reed Ln, Fort Smith, AR 72904", "OK Foods Heavener": "274 Industrial Rd, Heavener, OK 74937", "OMP (Ozark Mtn Poultry)": "750 W Easy Street Rogers, AR 72756", "Paris Bottoms": "3197 Old Sandy Rd, Paris, AR 72855", "Pinnacle Foods in Fayeteville": "1100 W 15th St, Fayetteville, AR 72701", "Planters": "4020 Planters Rd, Fort Smith, AR 72908", "Possum Hollow Rd": "6605 Possum Hollow Rd, Booneville, AR 72927", "Pro Rooter": "1212 Armistead Rd, Fort Smith, AR 72916", "ROARK": "9061 Private Rd 2143, Cassville, MO 65625", "Schwanns": "5 E Walnut St, Stilwell, OK 74960", "Shale Pit": "3834 AR-252, Huntington, AR 72940", "Shell Knob": "23693 State Hwy 39, Shell Knob, MO 65747", "Simmons Benton County": "9802 AR-59, Gentry, AR 72734", "Simmons Feedmill Decatur/Wellness pet": "2565 AR-59, Decatur, AR 72722", "Simmons New Plant (Cook Plant)": "2103 Twin Cir Dr, Van Buren, AR 72956", "Simmons Old Decatur Plant": "251 W Roller Ave, Decatur, AR 72722", "Simmons Old Plant (Main Plant)": "5 Main Street, Van Buren, AR 72956", "Simmons Treats/truckwash/wetpet": "316 N Hico St, Siloam Springs, AR 72761", "South West City Plow": "UNKNOWN", "Southeastern Poultry": "2200 Town W. Drive Rogers AR 72756", "Southwest City": "10700 State Hwy 43, Southwest City, MO 64863", "Tate & Lyle": "610 S 28th St, Van Buren, AR 72956", "The Bull": "5691 Co Rd 82, Huntington, AR 72940", "Twin Rivers": "201 N 2nd St, Fort Smith, AR 72901", "Tyson Berry Street": "600 Berry St, Springdale, AR 72764", "Tyson Berryville": "110 W Freeman Ave, Berryville, AR 72616", "Tyson Foods Bergman Feed Mill": "212 Tyson Dr, Bergman, AR 72615", "Tyson Ft Smith": "1610 Midland Blvd, Fort Smith, AR 72901", "Tyson Green Forest": "601 Tyson Dr, Green Forest, AR 72638", "Tyson Johnson Road": "4209 Johnson Rd. Springdale AR 72762", "Tyson of Rogers": "212 E Elm St. Rogers AR 72756", "Tyson Randall Road + Tyson Truck Stop": "671 W Randall Wobbe Lane Springdale AR 72764", "Tyson Research and Development": "2200 W Don Tyson Pkwy Springdale, AR 72762", "Tyson Waldron": "442 Plant St, Waldron, AR 72958", "Van Buren Yard": "5209 Alma Hwy Van Buren, AR 72956", "Wesley": "Co Rd 6290, Wesley, AR 72773", "West Ark Plumbing": "3117 Waco St, Fort Smith, AR 72903", "Zero Mtn": "8425 State Hwy 45, Fort Smith, AR 72916"};
+const LOCATIONS = Object.keys(LOCATION_ADDRESSES).sort((a,b)=>a.localeCompare(b));
+const OFFICIAL_ROUTES = [{"from": "Tyson of Rogers", "to": "Kibler Plow Sites and Storage", "miles": 76.0}, {"from": "Tyson of Rogers", "to": "Allens Canning", "miles": 29.0}, {"from": "Tyson of Rogers", "to": "Hackett", "miles": 97.0}, {"from": "Tyson of Rogers", "to": "Nebo", "miles": 78.0}, {"from": "Tyson of Rogers", "to": "Highway 59", "miles": 77.0}, {"from": "Tyson of Rogers", "to": "Hydro Ag Mulberry Plow", "miles": 77.0}, {"from": "Tyson of Rogers", "to": "Cecil", "miles": 107.0}, {"from": "Tyson of Rogers", "to": "Greenwood", "miles": 105.0}, {"from": "Tyson of Rogers", "to": "Gravette", "miles": 34.0}, {"from": "Cargill Live Haul Springdale", "to": "Kibler Plow Sites and Storage", "miles": 67.0}, {"from": "Cargill Live Haul Springdale", "to": "Allens Canning", "miles": 23.0}, {"from": "Cargill Live Haul Springdale", "to": "Hackett", "miles": 89.0}, {"from": "Cargill Live Haul Springdale", "to": "Nebo", "miles": 70.0}, {"from": "Cargill Live Haul Springdale", "to": "Highway 59", "miles": 68.0}, {"from": "Cargill Live Haul Springdale", "to": "Hydro Ag Mulberry Plow", "miles": 73.0}, {"from": "Cargill Live Haul Springdale", "to": "Cecil", "miles": 98.0}, {"from": "Cargill Live Haul Springdale", "to": "Greenwood", "miles": 96.0}, {"from": "Cargill Live Haul Springdale", "to": "Gravette", "miles": 45.0}, {"from": "Cargill Feedmill", "to": "Kibler Plow Sites and Storage", "miles": 62.0}, {"from": "Cargill Feedmill", "to": "Allens Canning", "miles": 22.0}, {"from": "Cargill Feedmill", "to": "Hackett", "miles": 83.0}, {"from": "Cargill Feedmill", "to": "Nebo", "miles": 64.0}, {"from": "Cargill Feedmill", "to": "Highway 59", "miles": 63.0}, {"from": "Cargill Feedmill", "to": "Hydro Ag Mulberry Plow", "miles": 67.0}, {"from": "Cargill Feedmill", "to": "Cecil", "miles": 92.0}, {"from": "Cargill Feedmill", "to": "Greenwood", "miles": 90.0}, {"from": "Cargill Feedmill", "to": "Gravette", "miles": 48.0}, {"from": "Tyson Randall Road + Tyson Truck Stop", "to": "Kibler Plow Sites and Storage", "miles": 66.0}, {"from": "Tyson Randall Road + Tyson Truck Stop", "to": "Allens Canning", "miles": 22.0}, {"from": "Tyson Randall Road + Tyson Truck Stop", "to": "Hackett", "miles": 88.0}, {"from": "Tyson Randall Road + Tyson Truck Stop", "to": "Nebo", "miles": 69.0}, {"from": "Tyson Randall Road + Tyson Truck Stop", "to": "Highway 59", "miles": 68.0}, {"from": "Tyson Randall Road + Tyson Truck Stop", "to": "Hydro Ag Mulberry Plow", "miles": 72.0}, {"from": "Tyson Randall Road + Tyson Truck Stop", "to": "Cecil", "miles": 97.0}, {"from": "Tyson Randall Road + Tyson Truck Stop", "to": "Greenwood", "miles": 95.0}, {"from": "Tyson Randall Road + Tyson Truck Stop", "to": "Gravette", "miles": 44.0}, {"from": "Tyson Johnson Road", "to": "Kibler Plow Sites and Storage", "miles": 61.0}, {"from": "Tyson Johnson Road", "to": "Allens Canning", "miles": 21.0}, {"from": "Tyson Johnson Road", "to": "Hackett", "miles": 83.0}, {"from": "Tyson Johnson Road", "to": "Nebo", "miles": 64.0}, {"from": "Tyson Johnson Road", "to": "Highway 59", "miles": 63.0}, {"from": "Tyson Johnson Road", "to": "Hydro Ag Mulberry Plow", "miles": 67.0}, {"from": "Tyson Johnson Road", "to": "Cecil", "miles": 92.0}, {"from": "Tyson Johnson Road", "to": "Greenwood", "miles": 90.0}, {"from": "Tyson Johnson Road", "to": "Gravette", "miles": 47.0}, {"from": "Southeastern Poultry", "to": "Kibler Plow Sites and Storage", "miles": 78.0}, {"from": "Southeastern Poultry", "to": "Allens Canning", "miles": 34.0}, {"from": "Southeastern Poultry", "to": "Hackett", "miles": 100.0}, {"from": "Southeastern Poultry", "to": "Nebo", "miles": 81.0}, {"from": "Southeastern Poultry", "to": "Highway 59", "miles": 80.0}, {"from": "Southeastern Poultry", "to": "Hydro Ag Mulberry Plow", "miles": 84.0}, {"from": "Southeastern Poultry", "to": "Cecil", "miles": 109.0}, {"from": "Southeastern Poultry", "to": "Greenwood", "miles": 107.0}, {"from": "Southeastern Poultry", "to": "Gravette", "miles": 32.0}, {"from": "Tyson Research and Development", "to": "Kibler Plow Sites and Storage", "miles": 62.0}, {"from": "Tyson Research and Development", "to": "Allens Canning", "miles": 21.0}, {"from": "Tyson Research and Development", "to": "Hackett", "miles": 83.0}, {"from": "Tyson Research and Development", "to": "Nebo", "miles": 65.0}, {"from": "Tyson Research and Development", "to": "Highway 59", "miles": 63.0}, {"from": "Tyson Research and Development", "to": "Hydro Ag Mulberry Plow", "miles": 68.0}, {"from": "Tyson Research and Development", "to": "Cecil", "miles": 93.0}, {"from": "Tyson Research and Development", "to": "Greenwood", "miles": 91.0}, {"from": "Tyson Research and Development", "to": "Gravette", "miles": 47.0}, {"from": "Chick n Quick", "to": "Kibler Plow Sites and Storage", "miles": 74.0}, {"from": "Chick n Quick", "to": "Allens Canning", "miles": 30.0}, {"from": "Chick n Quick", "to": "Hackett", "miles": 95.0}, {"from": "Chick n Quick", "to": "Nebo", "miles": 76.0}, {"from": "Chick n Quick", "to": "Highway 59", "miles": 75.0}, {"from": "Chick n Quick", "to": "Hydro Ag Mulberry Plow", "miles": 80.0}, {"from": "Chick n Quick", "to": "Cecil", "miles": 105.0}, {"from": "Chick n Quick", "to": "Greenwood", "miles": 103.0}, {"from": "Chick n Quick", "to": "Gravette", "miles": 36.0}, {"from": "OMP (Ozark Mtn Poultry)", "to": "Kibler Plow Sites and Storage", "miles": 80.0}, {"from": "OMP (Ozark Mtn Poultry)", "to": "Allens Canning", "miles": 36.0}, {"from": "OMP (Ozark Mtn Poultry)", "to": "Hackett", "miles": 101.0}, {"from": "OMP (Ozark Mtn Poultry)", "to": "Nebo", "miles": 82.0}, {"from": "OMP (Ozark Mtn Poultry)", "to": "Highway 59", "miles": 81.0}, {"from": "OMP (Ozark Mtn Poultry)", "to": "Hydro Ag Mulberry Plow", "miles": 85.0}, {"from": "OMP (Ozark Mtn Poultry)", "to": "Cecil", "miles": 110.0}, {"from": "OMP (Ozark Mtn Poultry)", "to": "Greenwood", "miles": 108.0}, {"from": "OMP (Ozark Mtn Poultry)", "to": "Gravette", "miles": 33.0}, {"from": "Tyson Berry Street", "to": "Kibler Plow Sites and Storage", "miles": 67.0}, {"from": "Tyson Berry Street", "to": "Allens Canning", "miles": 22.0}, {"from": "Tyson Berry Street", "to": "Hackett", "miles": 88.0}, {"from": "Tyson Berry Street", "to": "Nebo", "miles": 69.0}, {"from": "Tyson Berry Street", "to": "Highway 59", "miles": 68.0}, {"from": "Tyson Berry Street", "to": "Hydro Ag Mulberry Plow", "miles": 72.0}, {"from": "Tyson Berry Street", "to": "Cecil", "miles": 97.0}, {"from": "Tyson Berry Street", "to": "Greenwood", "miles": 96.0}, {"from": "Tyson Berry Street", "to": "Gravette", "miles": 46.0}, {"from": "Southwest City", "to": "South West City Plow", "miles": 8.0}, {"from": "Southwest City", "to": "Kibler Plow Sites and Storage", "miles": 113.0}, {"from": "Southwest City", "to": "Allens Canning", "miles": 35.0}, {"from": "Southwest City", "to": "Hackett", "miles": 134.0}, {"from": "Southwest City", "to": "Nebo", "miles": 115.0}, {"from": "Southwest City", "to": "Highway 59", "miles": 114.0}, {"from": "Southwest City", "to": "Hydro Ag Mulberry Plow", "miles": 118.0}, {"from": "Southwest City", "to": "Cecil", "miles": 143.0}, {"from": "Southwest City", "to": "Greenwood", "miles": 141.0}, {"from": "Southwest City", "to": "Gravette", "miles": 9.0}, {"from": "Cobb Vantress (truckwash + hatchery)", "to": "Kibler Plow Sites and Storage", "miles": 79.0}, {"from": "Cobb Vantress (truckwash + hatchery)", "to": "Allens Canning", "miles": 5.0}, {"from": "Cobb Vantress (truckwash + hatchery)", "to": "Hackett", "miles": 101.0}, {"from": "Cobb Vantress (truckwash + hatchery)", "to": "Nebo", "miles": 82.0}, {"from": "Cobb Vantress (truckwash + hatchery)", "to": "Highway 59", "miles": 81.0}, {"from": "Cobb Vantress (truckwash + hatchery)", "to": "Hydro Ag Mulberry Plow", "miles": 85.0}, {"from": "Cobb Vantress (truckwash + hatchery)", "to": "Cecil", "miles": 110.0}, {"from": "Cobb Vantress (truckwash + hatchery)", "to": "Greenwood", "miles": 108.0}, {"from": "Cobb Vantress (truckwash + hatchery)", "to": "Gravette", "miles": 25.0}, {"from": "Simmons Treats/truckwash/wetpet", "to": "Kibler Plow Sites and Storage", "miles": 79.0}, {"from": "Simmons Treats/truckwash/wetpet", "to": "Allens Canning", "miles": 5.0}, {"from": "Simmons Treats/truckwash/wetpet", "to": "Hackett", "miles": 101.0}, {"from": "Simmons Treats/truckwash/wetpet", "to": "Nebo", "miles": 82.0}, {"from": "Simmons Treats/truckwash/wetpet", "to": "Highway 59", "miles": 81.0}, {"from": "Simmons Treats/truckwash/wetpet", "to": "Hydro Ag Mulberry Plow", "miles": 85.0}, {"from": "Simmons Treats/truckwash/wetpet", "to": "Cecil", "miles": 110.0}, {"from": "Simmons Treats/truckwash/wetpet", "to": "Greenwood", "miles": 108.0}, {"from": "Simmons Treats/truckwash/wetpet", "to": "Gravette", "miles": 25.0}, {"from": "Simmons Benton County", "to": "Kibler Plow Sites and Storage", "miles": 89.0}, {"from": "Simmons Benton County", "to": "Allens Canning", "miles": 12.0}, {"from": "Simmons Benton County", "to": "Hackett", "miles": 110.0}, {"from": "Simmons Benton County", "to": "Nebo", "miles": 91.0}, {"from": "Simmons Benton County", "to": "Highway 59", "miles": 91.0}, {"from": "Simmons Benton County", "to": "Hydro Ag Mulberry Plow", "miles": 94.0}, {"from": "Simmons Benton County", "to": "Cecil", "miles": 119.0}, {"from": "Simmons Benton County", "to": "Greenwood", "miles": 118.0}, {"from": "Simmons Benton County", "to": "Gravette", "miles": 20.0}, {"from": "Simmons Feedmill Decatur/Wellness pet", "to": "Kibler Plow Sites and Storage", "miles": 93.0}, {"from": "Simmons Feedmill Decatur/Wellness pet", "to": "Allens Canning", "miles": 15.0}, {"from": "Simmons Feedmill Decatur/Wellness pet", "to": "Hackett", "miles": 112.0}, {"from": "Simmons Feedmill Decatur/Wellness pet", "to": "Nebo", "miles": 96.0}, {"from": "Simmons Feedmill Decatur/Wellness pet", "to": "Highway 59", "miles": 94.0}, {"from": "Simmons Feedmill Decatur/Wellness pet", "to": "Hydro Ag Mulberry Plow", "miles": 99.0}, {"from": "Simmons Feedmill Decatur/Wellness pet", "to": "Cecil", "miles": 124.0}, {"from": "Simmons Feedmill Decatur/Wellness pet", "to": "Greenwood", "miles": 122.0}, {"from": "Simmons Feedmill Decatur/Wellness pet", "to": "Gravette", "miles": 15.0}, {"from": "Simmons Old Decatur Plant", "to": "Kibler Plow Sites and Storage", "miles": 90.0}, {"from": "Simmons Old Decatur Plant", "to": "Allens Canning", "miles": 13.0}, {"from": "Simmons Old Decatur Plant", "to": "Hackett", "miles": 113.0}, {"from": "Simmons Old Decatur Plant", "to": "Nebo", "miles": 94.0}, {"from": "Simmons Old Decatur Plant", "to": "Highway 59", "miles": 93.0}, {"from": "Simmons Old Decatur Plant", "to": "Hydro Ag Mulberry Plow", "miles": 97.0}, {"from": "Simmons Old Decatur Plant", "to": "Cecil", "miles": 122.0}, {"from": "Simmons Old Decatur Plant", "to": "Greenwood", "miles": 120.0}, {"from": "Simmons Old Decatur Plant", "to": "Gravette", "miles": 16.0}, {"from": "Mckee Foods", "to": "Kibler Plow Sites and Storage", "miles": 86.0}, {"from": "Mckee Foods", "to": "Allens Canning", "miles": 10.0}, {"from": "Mckee Foods", "to": "Hackett", "miles": 108.0}, {"from": "Mckee Foods", "to": "Nebo", "miles": 89.0}, {"from": "Mckee Foods", "to": "Highway 59", "miles": 88.0}, {"from": "Mckee Foods", "to": "Hydro Ag Mulberry Plow", "miles": 92.0}, {"from": "Mckee Foods", "to": "Cecil", "miles": 117.0}, {"from": "Mckee Foods", "to": "Greenwood", "miles": 115.0}, {"from": "Mckee Foods", "to": "Gravette", "miles": 22.0}, {"from": "Allens Canning", "to": "Kibler Plow Sites and Storage", "miles": 79.0}, {"from": "Allens Canning", "to": "Hackett", "miles": 100.0}, {"from": "Allens Canning", "to": "Nebo", "miles": 82.0}, {"from": "Allens Canning", "to": "Highway 59", "miles": 80.0}, {"from": "Allens Canning", "to": "Hydro Ag Mulberry Plow", "miles": 85.0}, {"from": "Allens Canning", "to": "Cecil", "miles": 111.0}, {"from": "Allens Canning", "to": "Greenwood", "miles": 109.0}, {"from": "Allens Canning", "to": "Gravette", "miles": 26.0}, {"from": "Lowell", "to": "Kibler Plow Sites and Storage", "miles": 71.0}, {"from": "Lowell", "to": "Hackett", "miles": 91.0}, {"from": "Lowell", "to": "Nebo", "miles": 72.0}, {"from": "Lowell", "to": "Highway 59", "miles": 71.0}, {"from": "Lowell", "to": "Hydro Ag Mulberry Plow", "miles": 75.0}, {"from": "Lowell", "to": "Cecil", "miles": 101.0}, {"from": "Lowell", "to": "Greenwood", "miles": 98.0}, {"from": "Lowell", "to": "Gravette", "miles": 46.0}, {"from": "Lowell", "to": "Tyson of Rogers", "miles": 6.0}, {"from": "Lowell", "to": "Cargill Live Haul Springdale", "miles": 5.0}, {"from": "Lowell", "to": "Cargill Feedmill", "miles": 7.0}, {"from": "Lowell", "to": "Tyson Randall Road + Tyson Truck Stop", "miles": 5.0}, {"from": "Lowell", "to": "Tyson Johnson Road", "miles": 9.0}, {"from": "Lowell", "to": "Southeastern Poultry", "miles": 8.0}, {"from": "Lowell", "to": "Tyson Research and Development", "miles": 9.0}, {"from": "Lowell", "to": "Chick n Quick", "miles": 5.0}, {"from": "Lowell", "to": "OMP (Ozark Mtn Poultry)", "miles": 7.0}, {"from": "Lowell", "to": "Tyson Berry Street", "miles": 6.0}, {"from": "Lowell", "to": "Southwest City", "miles": 46.0}, {"from": "Lowell", "to": "Cobb Vantress (truckwash + hatchery)", "miles": 26.0}, {"from": "Lowell", "to": "Simmons Treats/truckwash/wetpet", "miles": 29.0}, {"from": "Lowell", "to": "Simmons Benton County", "miles": 26.0}, {"from": "Lowell", "to": "Simmons Feedmill Decatur/Wellness pet", "miles": 34.0}, {"from": "Lowell", "to": "Simmons Old Decatur Plant", "miles": 26.0}, {"from": "Lowell", "to": "Mckee Foods", "miles": 23.0}, {"from": "Lowell", "to": "Allens Canning", "miles": 25.0}, {"from": "Lowell", "to": "Tyson Berryville", "miles": 56.0}, {"from": "Lowell", "to": "Tyson Green Forest", "miles": 67.0}, {"from": "Lowell", "to": "ButterBall Huntsville", "miles": 34.0}, {"from": "Lowell", "to": "Berryville Pit", "miles": 49.0}, {"from": "Lowell", "to": "Green Forest Fracs/ YARD", "miles": 65.0}, {"from": "Lowell", "to": "Pinnacle Foods in Fayeteville", "miles": 19.0}, {"from": "Simmons New Plant (Cook Plant)", "to": "Hackett", "miles": 25.0}, {"from": "Simmons New Plant (Cook Plant)", "to": "Nebo", "miles": 6.0}, {"from": "Simmons New Plant (Cook Plant)", "to": "Highway 59", "miles": 3.0}, {"from": "Simmons New Plant (Cook Plant)", "to": "Hydro Ag Mulberry Plow", "miles": 23.0}, {"from": "Simmons New Plant (Cook Plant)", "to": "Allens Canning", "miles": 78.0}, {"from": "Simmons New Plant (Cook Plant)", "to": "Kibler Plow Sites and Storage", "miles": 12.0}, {"from": "Simmons New Plant (Cook Plant)", "to": "Cecil Plow", "miles": 41.0}, {"from": "Simmons New Plant (Cook Plant)", "to": "Greenwood", "miles": 30.0}, {"from": "Simmons New Plant (Cook Plant)", "to": "Paris Bottoms", "miles": 51.0}, {"from": "Simmons Old Plant (Main Plant)", "to": "Hackett", "miles": 25.0}, {"from": "Simmons Old Plant (Main Plant)", "to": "Nebo", "miles": 7.0}, {"from": "Simmons Old Plant (Main Plant)", "to": "Denali Plow Ozark", "miles": 42.0}, {"from": "Simmons Old Plant (Main Plant)", "to": "Highway 59", "miles": 4.0}, {"from": "Simmons Old Plant (Main Plant)", "to": "Hydro Ag Mulberry Plow", "miles": 24.0}, {"from": "Simmons Old Plant (Main Plant)", "to": "Kibler Plow Sites and Storage", "miles": 12.0}, {"from": "Simmons Old Plant (Main Plant)", "to": "Allens Canning", "miles": 79.0}, {"from": "Simmons Old Plant (Main Plant)", "to": "Cecil Plow", "miles": 49.0}, {"from": "Simmons Old Plant (Main Plant)", "to": "Greenwood", "miles": 30.0}, {"from": "Simmons Old Plant (Main Plant)", "to": "Paris Bottoms", "miles": 52.0}, {"from": "OK Foods Fort Smith", "to": "Hackett", "miles": 24.0}, {"from": "OK Foods Fort Smith", "to": "Nebo", "miles": 7.0}, {"from": "OK Foods Fort Smith", "to": "Highway 59", "miles": 6.0}, {"from": "OK Foods Fort Smith", "to": "Hydro Ag Mulberry Plow", "miles": 26.0}, {"from": "OK Foods Fort Smith", "to": "Kibler Plow Sites and Storage", "miles": 15.0}, {"from": "OK Foods Fort Smith", "to": "Allens Canning", "miles": 80.0}, {"from": "OK Foods Fort Smith", "to": "Cecil Plow", "miles": 44.0}, {"from": "OK Foods Fort Smith", "to": "Greenwood", "miles": 31.0}, {"from": "OK Foods Fort Smith", "to": "Paris Bottoms", "miles": 53.0}, {"from": "Mars Pet Foods", "to": "Hackett", "miles": 18.0}, {"from": "Mars Pet Foods", "to": "Kibler Plow Sites and Storage", "miles": 13.0}, {"from": "Mars Pet Foods", "to": "Nebo", "miles": 9.0}, {"from": "Mars Pet Foods", "to": "Highway 59", "miles": 9.0}, {"from": "Mars Pet Foods", "to": "Allens Canning", "miles": 88.0}, {"from": "Mars Pet Foods", "to": "Hydro Ag Mulberry Plow", "miles": 34.0}, {"from": "Mars Pet Foods", "to": "Cecil Plow", "miles": 28.0}, {"from": "Mars Pet Foods", "to": "Greenwood", "miles": 18.0}, {"from": "Mars Pet Foods", "to": "Paris Bottoms", "miles": 43.0}, {"from": "Tyson Ft Smith", "to": "Hackett", "miles": 24.0}, {"from": "Tyson Ft Smith", "to": "Nebo", "miles": 10.0}, {"from": "Tyson Ft Smith", "to": "Highway 59", "miles": 8.0}, {"from": "Tyson Ft Smith", "to": "Hydro Ag Mulberry Plow", "miles": 28.0}, {"from": "Tyson Ft Smith", "to": "Allens Canning", "miles": 82.0}, {"from": "Tyson Ft Smith", "to": "Kibler Plow Sites and Storage", "miles": 18.0}, {"from": "Tyson Ft Smith", "to": "Cecil Plow", "miles": 35.0}, {"from": "Tyson Ft Smith", "to": "Greenwood", "miles": 28.0}, {"from": "Tyson Ft Smith", "to": "Paris Bottoms", "miles": 52.0}, {"from": "Gerber", "to": "Hackett", "miles": 24.0}, {"from": "Gerber", "to": "Nebo", "miles": 8.0}, {"from": "Gerber", "to": "Highway 59", "miles": 6.0}, {"from": "Gerber", "to": "Hydro Ag Mulberry Plow", "miles": 25.0}, {"from": "Gerber", "to": "Natural Dam", "miles": 20.0}, {"from": "Gerber", "to": "Allens Canning", "miles": 80.0}, {"from": "Gerber", "to": "Kibler Plow Sites and Storage", "miles": 14.0}, {"from": "Gerber", "to": "Cecil Plow", "miles": 44.0}, {"from": "Gerber", "to": "Greenwood", "miles": 31.0}, {"from": "Gerber", "to": "Paris Bottoms", "miles": 52.0}, {"from": "Tate & Lyle", "to": "Hackett", "miles": 25.0}, {"from": "Tate & Lyle", "to": "Nebo", "miles": 5.0}, {"from": "Tate & Lyle", "to": "Highway 59", "miles": 3.0}, {"from": "Tate & Lyle", "to": "Hydro Ag Mulberry Plow", "miles": 22.0}, {"from": "Tate & Lyle", "to": "Natural Dam", "miles": 22.0}, {"from": "Tate & Lyle", "to": "Allens Canning", "miles": 78.0}, {"from": "Tate & Lyle", "to": "Kibler Plow Sites and Storage", "miles": 12.0}, {"from": "Tate & Lyle", "to": "Cecil Plow", "miles": 41.0}, {"from": "Tate & Lyle", "to": "Greenwood", "miles": 32.0}, {"from": "Tate & Lyle", "to": "Paris Bottoms", "miles": 49.0}, {"from": "Planters", "to": "Hackett", "miles": 15.0}, {"from": "Planters", "to": "Nebo", "miles": 12.0}, {"from": "Planters", "to": "Highway 59", "miles": 14.0}, {"from": "Planters", "to": "Hydro Ag Mulberry Plow", "miles": 33.0}, {"from": "Planters", "to": "Allens Canning", "miles": 87.0}, {"from": "Planters", "to": "Kibler Plow Sites and Storage", "miles": 23.0}, {"from": "Planters", "to": "Cecil Plow", "miles": 39.0}, {"from": "Planters", "to": "Greenwood", "miles": 21.0}, {"from": "Planters", "to": "Paris Bottoms", "miles": 48.0}, {"from": "Zero Mtn", "to": "Hackett", "miles": 15.0}, {"from": "Zero Mtn", "to": "Nebo", "miles": 13.0}, {"from": "Zero Mtn", "to": "Highway 59", "miles": 13.0}, {"from": "Zero Mtn", "to": "Hydro Ag Mulberry Plow", "miles": 32.0}, {"from": "Zero Mtn", "to": "Allens Canning", "miles": 87.0}, {"from": "Zero Mtn", "to": "Kibler Plow Sites and Storage", "miles": 22.0}, {"from": "Zero Mtn", "to": "Cecil Plow", "miles": 39.0}, {"from": "Zero Mtn", "to": "Greenwood", "miles": 21.0}, {"from": "Zero Mtn", "to": "Paris Bottoms", "miles": 48.0}, {"from": "Tyson Waldron", "to": "Hackett", "miles": 34.0}, {"from": "Tyson Waldron", "to": "Nebo", "miles": 47.0}, {"from": "Tyson Waldron", "to": "Highway 59", "miles": 47.0}, {"from": "Tyson Waldron", "to": "Hydro Ag Mulberry Plow", "miles": 71.0}, {"from": "Tyson Waldron", "to": "Allens Canning", "miles": 126.0}, {"from": "Tyson Waldron", "to": "Kibler Plow Sites and Storage", "miles": 61.0}, {"from": "Tyson Waldron", "to": "Cecil Plow", "miles": 53.0}, {"from": "Tyson Waldron", "to": "Greenwood", "miles": 28.0}, {"from": "Tyson Waldron", "to": "Paris Bottoms", "miles": 25.0}, {"from": "Hiland Dairy", "to": "Hackett", "miles": 17.0}, {"from": "Hiland Dairy", "to": "Nebo", "miles": 11.0}, {"from": "Hiland Dairy", "to": "Highway 59", "miles": 9.0}, {"from": "Hiland Dairy", "to": "Hydro Ag Mulberry Plow", "miles": 29.0}, {"from": "Hiland Dairy", "to": "Allens Canning", "miles": 84.0}, {"from": "Hiland Dairy", "to": "Kibler Plow Sites and Storage", "miles": 18.0}, {"from": "Hiland Dairy", "to": "Cecil Plow", "miles": 41.0}, {"from": "Hiland Dairy", "to": "Shale Pit", "miles": 24.0}, {"from": "Hiland Dairy", "to": "Possum Hollow Rd", "miles": 29.0}, {"from": "Hiland Dairy", "to": "The Bull", "miles": 27.0}, {"from": "Hiland Dairy", "to": "Barton Rd", "miles": 28.0}, {"from": "Hiland Dairy", "to": "Paris Bottoms", "miles": 49.0}, {"from": "Twin Rivers", "to": "Hackett", "miles": 17.0}, {"from": "Twin Rivers", "to": "Nebo", "miles": 12.0}, {"from": "Twin Rivers", "to": "Highway 59", "miles": 9.0}, {"from": "Twin Rivers", "to": "Hydro Ag Mulberry Plow", "miles": 29.0}, {"from": "Twin Rivers", "to": "Kibler Plow Sites and Storage", "miles": 20.0}, {"from": "Twin Rivers", "to": "Allens Canning", "miles": 87.0}, {"from": "Twin Rivers", "to": "Cecil Plow", "miles": 41.0}, {"from": "Twin Rivers", "to": "Greenwood", "miles": 28.0}, {"from": "Twin Rivers", "to": "Paris Bottoms", "miles": 50.0}, {"from": "Hiram Walker", "to": "Hackett", "miles": 14.0}, {"from": "Hiram Walker", "to": "Nebo", "miles": 13.0}, {"from": "Hiram Walker", "to": "Highway 59", "miles": 13.0}, {"from": "Hiram Walker", "to": "Hydro Ag Mulberry Plow", "miles": 32.0}, {"from": "Hiram Walker", "to": "Kibler Plow Sites and Storage", "miles": 21.0}, {"from": "Hiram Walker", "to": "Allens Canning", "miles": 87.0}, {"from": "Hiram Walker", "to": "Cecil Plow", "miles": 37.0}, {"from": "Hiram Walker", "to": "Greenwood", "miles": 28.0}, {"from": "Hiram Walker", "to": "Paris Bottoms", "miles": 47.0}, {"from": "Moses Plumbing", "to": "Hackett", "miles": 30.0}, {"from": "Moses Plumbing", "to": "Nebo", "miles": 10.0}, {"from": "Moses Plumbing", "to": "Highway 59", "miles": 9.0}, {"from": "Moses Plumbing", "to": "Hydro Ag Mulberry Plow", "miles": 19.0}, {"from": "Moses Plumbing", "to": "Allens Canning", "miles": 76.0}, {"from": "Moses Plumbing", "to": "Kibler Plow Sites and Storage", "miles": 6.0}, {"from": "Moses Plumbing", "to": "Cecil Plow", "miles": 45.0}, {"from": "Moses Plumbing", "to": "Greenwood", "miles": 38.0}, {"from": "Moses Plumbing", "to": "Paris Bottoms", "miles": 53.0}, {"from": "West Ark Plumbing", "to": "Hackett", "miles": 14.0}, {"from": "West Ark Plumbing", "to": "Nebo", "miles": 14.0}, {"from": "West Ark Plumbing", "to": "Highway 59", "miles": 12.0}, {"from": "West Ark Plumbing", "to": "Hydro Ag Mulberry Plow", "miles": 32.0}, {"from": "West Ark Plumbing", "to": "Kibler Plow Sites and Storage", "miles": 22.0}, {"from": "West Ark Plumbing", "to": "Allens Canning", "miles": 86.0}, {"from": "West Ark Plumbing", "to": "Cecil Plow", "miles": 37.0}, {"from": "West Ark Plumbing", "to": "Greenwood", "miles": 22.0}, {"from": "West Ark Plumbing", "to": "Paris Bottoms", "miles": 47.0}, {"from": "Pro Rooter", "to": "Hackett", "miles": 19.0}, {"from": "Pro Rooter", "to": "Nebo", "miles": 10.0}, {"from": "Pro Rooter", "to": "Highway 59", "miles": 17.0}, {"from": "Pro Rooter", "to": "Allens Canning", "miles": 91.0}, {"from": "Pro Rooter", "to": "Hydro Ag Mulberry Plow", "miles": 36.0}, {"from": "Pro Rooter", "to": "Kibler Plow Sites and Storage", "miles": 26.0}, {"from": "Pro Rooter", "to": "Cecil Plow", "miles": 41.0}, {"from": "Pro Rooter", "to": "Greenwood", "miles": 25.0}, {"from": "Pro Rooter", "to": "Paris Bottoms", "miles": 52.0}, {"from": "Drain Masters", "to": "Hackett", "miles": 15.0}, {"from": "Drain Masters", "to": "Nebo", "miles": 20.0}, {"from": "Drain Masters", "to": "Highway 59", "miles": 19.0}, {"from": "Drain Masters", "to": "Allens Canning", "miles": 93.0}, {"from": "Drain Masters", "to": "Hydro Ag Mulberry Plow", "miles": 39.0}, {"from": "Drain Masters", "to": "Kibler Plow Sites and Storage", "miles": 28.0}, {"from": "Drain Masters", "to": "Cecil Plow", "miles": 43.0}, {"from": "Drain Masters", "to": "Greenwood", "miles": 27.0}, {"from": "Butterball Ozark", "to": "Hackett", "miles": 58.0}, {"from": "Butterball Ozark", "to": "Nebo", "miles": 40.0}, {"from": "Butterball Ozark", "to": "Highway 59", "miles": 39.0}, {"from": "Butterball Ozark", "to": "Hydro Ag Mulberry Plow", "miles": 15.0}, {"from": "Butterball Ozark", "to": "Allens Canning", "miles": 97.0}, {"from": "Butterball Ozark", "to": "Kibler Plow Sites and Storage", "miles": 36.0}, {"from": "Butterball Ozark", "to": "Cecil Plow", "miles": 14.0}, {"from": "Butterball Ozark", "to": "Greenwood", "miles": 66.0}, {"from": "Keith Smith", "to": "Hackett", "miles": 40.0}, {"from": "Keith Smith", "to": "Nebo", "miles": 19.0}, {"from": "Keith Smith", "to": "Highway 59", "miles": 18.0}, {"from": "Keith Smith", "to": "Allens Canning", "miles": 53.0}, {"from": "Keith Smith", "to": "Hydro Ag Mulberry Plow", "miles": 35.0}, {"from": "Keith Smith", "to": "Kibler Plow Sites and Storage", "miles": 30.0}, {"from": "Keith Smith", "to": "Cecil Plow", "miles": 59.0}, {"from": "Keith Smith", "to": "Greenwood", "miles": 47.0}, {"from": "Nebo", "to": "Hackett", "miles": 25.0}, {"from": "Nebo", "to": "Highway 59", "miles": 1.0}, {"from": "Nebo", "to": "Hydro Ag Mulberry Plow", "miles": 27.0}, {"from": "Nebo", "to": "Kibler Plow Sites and Storage", "miles": 16.0}, {"from": "Nebo", "to": "Allens Canning", "miles": 81.0}, {"from": "Nebo", "to": "Cecil Plow", "miles": 37.0}, {"from": "Nebo", "to": "Greenwood", "miles": 29.0}, {"from": "Kibler Storage Tanks", "to": "Hackett", "miles": 34.0}, {"from": "Kibler Storage Tanks", "to": "Nebo", "miles": 10.0}, {"from": "Kibler Storage Tanks", "to": "Highway 59", "miles": 14.0}, {"from": "Kibler Storage Tanks", "to": "Hydro Ag Mulberry Plow", "miles": 22.0}, {"from": "Kibler Storage Tanks", "to": "Allens Canning", "miles": 80.0}, {"from": "Kibler Storage Tanks", "to": "Kibler Plow Sites and Storage", "miles": 1.0}, {"from": "Kibler Storage Tanks", "to": "Cecil Plow", "miles": 52.0}, {"from": "Kibler Storage Tanks", "to": "Greenwood", "miles": 42.0}, {"from": "Van Buren Yard", "to": "Lowell", "miles": 66.0}, {"from": "Van Buren Yard", "to": "Simmons New Plant (Cook Plant)", "miles": 4.0}, {"from": "Van Buren Yard", "to": "Simmons Old Plant (Main Plant)", "miles": 4.0}, {"from": "Van Buren Yard", "to": "OK Foods Fort Smith", "miles": 6.0}, {"from": "Van Buren Yard", "to": "Mars Pet Foods", "miles": 15.0}, {"from": "Van Buren Yard", "to": "Tyson Ft Smith", "miles": 8.0}, {"from": "Van Buren Yard", "to": "Gerber", "miles": 6.0}, {"from": "Van Buren Yard", "to": "Tate & Lyle", "miles": 4.0}, {"from": "Van Buren Yard", "to": "Planters", "miles": 15.0}, {"from": "Van Buren Yard", "to": "Zero Mtn", "miles": 15.0}, {"from": "Van Buren Yard", "to": "Highway 59", "miles": 6.0}, {"from": "Van Buren Yard", "to": "Tyson Waldron", "miles": 53.0}, {"from": "Van Buren Yard", "to": "Hiland Dairy", "miles": 10.0}, {"from": "Van Buren Yard", "to": "Twin Rivers", "miles": 11.0}, {"from": "Van Buren Yard", "to": "Hiram Walker", "miles": 14.0}, {"from": "Van Buren Yard", "to": "Moses Plumbing", "miles": 5.0}, {"from": "Van Buren Yard", "to": "West Ark Plumbing", "miles": 13.0}, {"from": "Van Buren Yard", "to": "Pro Rooter", "miles": 18.0}, {"from": "Van Buren Yard", "to": "Drain Masters", "miles": 19.0}, {"from": "Van Buren Yard", "to": "Butterball Ozark", "miles": 34.0}, {"from": "Van Buren Yard", "to": "Keith Smith", "miles": 17.0}, {"from": "Van Buren Yard", "to": "Nebo", "miles": 8.0}, {"from": "Van Buren Yard", "to": "Hackett", "miles": 28.0}, {"from": "Van Buren Yard", "to": "Kibler Storage Tanks", "miles": 10.0}, {"from": "Van Buren Yard", "to": "Tyson of Rogers", "miles": 73.0}, {"from": "Van Buren Yard", "to": "Cargill Live Haul Springdale", "miles": 65.0}, {"from": "Van Buren Yard", "to": "Cargill Feedmill", "miles": 59.0}, {"from": "Van Buren Yard", "to": "Tyson Randall Road + Tyson Truck Stop", "miles": 64.0}, {"from": "Van Buren Yard", "to": "Tyson Johnson Road", "miles": 58.0}, {"from": "Van Buren Yard", "to": "Southeastern Poultry", "miles": 76.0}, {"from": "Van Buren Yard", "to": "Tyson Research and Development", "miles": 60.0}, {"from": "Van Buren Yard", "to": "Chick n Quick", "miles": 71.0}, {"from": "Van Buren Yard", "to": "OMP (Ozark Mtn Poultry)", "miles": 77.0}, {"from": "Van Buren Yard", "to": "Tyson Berry Street", "miles": 64.0}, {"from": "Van Buren Yard", "to": "Southwest City", "miles": 110.0}, {"from": "Van Buren Yard", "to": "Cobb Vantress (truckwash + hatchery)", "miles": 77.0}, {"from": "Van Buren Yard", "to": "Simmons Treats/truckwash/wetpet", "miles": 64.0}, {"from": "Van Buren Yard", "to": "Simmons Benton County", "miles": 87.0}, {"from": "Van Buren Yard", "to": "Simmons Feedmill Decatur/Wellness pet", "miles": 98.0}, {"from": "Van Buren Yard", "to": "Simmons Old Decatur Plant", "miles": 89.0}, {"from": "Van Buren Yard", "to": "Mckee Foods", "miles": 84.0}, {"from": "Van Buren Yard", "to": "Allens Canning", "miles": 77.0}, {"from": "Van Buren Yard", "to": "Tyson Berryville", "miles": 110.0}, {"from": "Van Buren Yard", "to": "Tyson Green Forest", "miles": 113.0}, {"from": "Van Buren Yard", "to": "ButterBall Huntsville", "miles": 81.0}, {"from": "Van Buren Yard", "to": "Berryville Pit", "miles": 107.0}, {"from": "Van Buren Yard", "to": "Green Forest Fracs/ YARD", "miles": 112.0}, {"from": "Tyson Foods Bergman Feed Mill", "to": "Tyson Berryville", "miles": 37.0}, {"from": "Tyson Berryville", "to": "Shell Knob", "miles": 21.0}, {"from": "Tyson Berryville", "to": "Harrison", "miles": 36.0}, {"from": "Tyson Berryville", "to": "ROARK", "miles": 41.0}, {"from": "Tyson Berryville", "to": "Hindsville", "miles": 40.0}, {"from": "Tyson Berryville", "to": "Hackett", "miles": 134.0}, {"from": "Tyson Berryville", "to": "Durham", "miles": 59.0}, {"from": "Tyson Berryville", "to": "Gravette", "miles": 76.0}, {"from": "Tyson Berryville", "to": "Allens Canning", "miles": 71.0}, {"from": "Tyson Berryville", "to": "Lowell", "miles": 51.0}, {"from": "Tyson Berryville", "to": "Van Buren Yard", "miles": 111.0}, {"from": "Tyson Berryville", "to": "Kibler Plow Sites and Storage", "miles": 112.0}, {"from": "Tyson Berryville", "to": "Highway 59", "miles": 114.0}, {"from": "Tyson Berryville", "to": "Nebo", "miles": 114.0}, {"from": "Tyson Berryville", "to": "Wesley", "miles": 45.0}, {"from": "Tyson Berryville", "to": "Berryville Pit", "miles": 2.6}, {"from": "Tyson Berryville", "to": "Green Forest Fracs/ YARD", "miles": 8.0}, {"from": "Tyson Green Forest", "to": "Shell Knob", "miles": 30.0}, {"from": "Tyson Green Forest", "to": "Harrison", "miles": 27.0}, {"from": "Tyson Green Forest", "to": "ROARK", "miles": 51.0}, {"from": "Tyson Green Forest", "to": "Hackett", "miles": 137.0}, {"from": "Tyson Green Forest", "to": "Hindsville", "miles": 43.0}, {"from": "Tyson Green Forest", "to": "Durham", "miles": 62.0}, {"from": "Tyson Green Forest", "to": "Gravette", "miles": 85.0}, {"from": "Tyson Green Forest", "to": "Allens Canning", "miles": 81.0}, {"from": "Tyson Green Forest", "to": "Lowell", "miles": 67.0}, {"from": "Tyson Green Forest", "to": "Van Buren Yard", "miles": 114.0}, {"from": "Tyson Green Forest", "to": "Kibler Plow Sites and Storage", "miles": 116.0}, {"from": "Tyson Green Forest", "to": "Highway 59", "miles": 118.0}, {"from": "Tyson Green Forest", "to": "Nebo", "miles": 119.0}, {"from": "Tyson Green Forest", "to": "Wesley", "miles": 48.0}, {"from": "Tyson Green Forest", "to": "Berryville Pit", "miles": 12.0}, {"from": "Tyson Green Forest", "to": "Green Forest Fracs/ YARD", "miles": 1.0}, {"from": "ButterBall Huntsville", "to": "Hindsville", "miles": 11.0}, {"from": "ButterBall Huntsville", "to": "Hackett", "miles": 103.0}, {"from": "ButterBall Huntsville", "to": "Durham", "miles": 28.0}, {"from": "ButterBall Huntsville", "to": "Gravette", "miles": 74.0}, {"from": "ButterBall Huntsville", "to": "Allens Canning", "miles": 48.0}, {"from": "ButterBall Huntsville", "to": "Lowell", "miles": 34.0}, {"from": "ButterBall Huntsville", "to": "Van Buren Yard", "miles": 80.0}, {"from": "ButterBall Huntsville", "to": "Kibler Plow Sites and Storage", "miles": 83.0}, {"from": "ButterBall Huntsville", "to": "Highway 59", "miles": 84.0}, {"from": "ButterBall Huntsville", "to": "Nebo", "miles": 83.0}, {"from": "ButterBall Huntsville", "to": "Wesley", "miles": 14.0}, {"from": "Green Forest Fracs/ YARD", "to": "Hindsville", "miles": 42.0}, {"from": "Green Forest Fracs/ YARD", "to": "Hackett", "miles": 136.0}, {"from": "Green Forest Fracs/ YARD", "to": "Durham", "miles": 61.0}, {"from": "Green Forest Fracs/ YARD", "to": "Gravette", "miles": 107.0}, {"from": "Green Forest Fracs/ YARD", "to": "Lowell", "miles": 67.0}, {"from": "Green Forest Fracs/ YARD", "to": "Van Buren Yard", "miles": 111.0}, {"from": "Green Forest Fracs/ YARD", "to": "Kibler Plow Sites and Storage", "miles": 116.0}, {"from": "Green Forest Fracs/ YARD", "to": "Highway 59", "miles": 116.0}, {"from": "Green Forest Fracs/ YARD", "to": "Wesley", "miles": 47.0}, {"from": "Green Forest Fracs/ YARD", "to": "Nebo", "miles": 116.0}, {"from": "Berryville Pit", "to": "Hindsville", "miles": 42.0}, {"from": "Berryville Pit", "to": "Durham", "miles": 58.0}, {"from": "Berryville Pit", "to": "Gravette", "miles": 105.0}, {"from": "Berryville Pit", "to": "Lowell", "miles": 65.0}, {"from": "Berryville Pit", "to": "Van Buren Yard", "miles": 108.0}, {"from": "Berryville Pit", "to": "Kibler Plow Sites and Storage", "miles": 110.0}, {"from": "Berryville Pit", "to": "Highway 59", "miles": 111.0}, {"from": "Berryville Pit", "to": "Wesley", "miles": 47.0}, {"from": "Berryville Pit", "to": "Nebo", "miles": 113.0}, {"from": "Shell Knob", "to": "Hindsville", "miles": 58.0}, {"from": "Shell Knob", "to": "Durham", "miles": 80.0}, {"from": "Shell Knob", "to": "Gravette", "miles": 79.0}, {"from": "Shell Knob", "to": "Lowell", "miles": 54.0}, {"from": "Shell Knob", "to": "Van Buren Yard", "miles": 125.0}, {"from": "Shell Knob", "to": "Kibler Plow Sites and Storage", "miles": 127.0}, {"from": "Shell Knob", "to": "Highway 59", "miles": 128.0}, {"from": "Shell Knob", "to": "Wesley", "miles": 66.0}, {"from": "Shell Knob", "to": "Nebo", "miles": 130.0}, {"from": "Harrison", "to": "Hindsville", "miles": 61.0}, {"from": "Harrison", "to": "Durham", "miles": 80.0}, {"from": "Harrison", "to": "Gravette", "miles": 120.0}, {"from": "Harrison", "to": "Lowell", "miles": 84.0}, {"from": "Harrison", "to": "Van Buren Yard", "miles": 132.0}, {"from": "Harrison", "to": "Kibler Plow Sites and Storage", "miles": 135.0}, {"from": "Harrison", "to": "Highway 59", "miles": 135.0}, {"from": "Harrison", "to": "Wesley", "miles": 66.0}, {"from": "Harrison", "to": "Nebo", "miles": 137.0}, {"from": "ROARK", "to": "Hindsville", "miles": 64.0}, {"from": "ROARK", "to": "Durham", "miles": 80.0}, {"from": "ROARK", "to": "Gravette", "miles": 60.0}, {"from": "ROARK", "to": "Lowell", "miles": 42.0}, {"from": "ROARK", "to": "Van Buren Yard", "miles": 112.0}, {"from": "ROARK", "to": "Kibler Plow Sites and Storage", "miles": 115.0}, {"from": "ROARK", "to": "Highway 59", "miles": 116.0}, {"from": "ROARK", "to": "Wesley", "miles": 74.0}, {"from": "ROARK", "to": "Nebo", "miles": 118.0}, {"from": "Advanced Micro", "to": "Kibler Plow Sites and Storage", "miles": 142.0}, {"from": "Advanced Micro", "to": "Allens Canning", "miles": 102.0}, {"from": "Advanced Micro", "to": "Hackett", "miles": 143.0}, {"from": "Advanced Micro", "to": "Nebo", "miles": 138.0}, {"from": "Advanced Micro", "to": "Highway 59", "miles": 136.0}, {"from": "Advanced Micro", "to": "Hydro Ag Mulberry Plow", "miles": 151.0}, {"from": "Advanced Micro", "to": "Cecil", "miles": 168.0}, {"from": "Advanced Micro", "to": "Greenwood", "miles": 151.0}, {"from": "Advanced Micro", "to": "Gravette", "miles": 109.0}, {"from": "Bluebell", "to": "Kibler Plow Sites and Storage", "miles": 115.0}, {"from": "Bluebell", "to": "Allens Canning", "miles": 85.0}, {"from": "Bluebell", "to": "Hackett", "miles": 116.0}, {"from": "Bluebell", "to": "Nebo", "miles": 111.0}, {"from": "Bluebell", "to": "Highway 59", "miles": 109.0}, {"from": "Bluebell", "to": "Hydro Ag Mulberry Plow", "miles": 124.0}, {"from": "Bluebell", "to": "Cecil", "miles": 141.0}, {"from": "Bluebell", "to": "Greenwood", "miles": 124.0}, {"from": "Bluebell", "to": "Gravette", "miles": 109.0}, {"from": "Bakey Feeds", "to": "Kibler Plow Sites and Storage", "miles": 72.0}, {"from": "Bakey Feeds", "to": "Allens Canning", "miles": 15.0}, {"from": "Bakey Feeds", "to": "Hackett", "miles": 86.0}, {"from": "Bakey Feeds", "to": "Nebo", "miles": 65.0}, {"from": "Bakey Feeds", "to": "Highway 59", "miles": 64.0}, {"from": "Bakey Feeds", "to": "Hydro Ag Mulberry Plow", "miles": 85.0}, {"from": "Bakey Feeds", "to": "Cecil", "miles": 110.0}, {"from": "Bakey Feeds", "to": "Greenwood", "miles": 94.0}, {"from": "Bakey Feeds", "to": "Gravette", "miles": 28.0}, {"from": "Schwanns", "to": "Hackett", "miles": 66.0}, {"from": "Schwanns", "to": "Allens Canning", "miles": 38.0}, {"from": "Schwanns", "to": "Nebo", "miles": 48.0}, {"from": "Schwanns", "to": "Kibler Plow Sites and Storage", "miles": 52.0}, {"from": "Schwanns", "to": "Highway 59", "miles": 47.0}, {"from": "Schwanns", "to": "Hydro Ag Mulberry Plow", "miles": 61.0}, {"from": "Schwanns", "to": "Cecil Plow", "miles": 85.0}, {"from": "Schwanns", "to": "Greenwood", "miles": 73.0}, {"from": "OK Foods Heavener", "to": "Hackett", "miles": 34.0}, {"from": "OK Foods Heavener", "to": "Nebo", "miles": 50.0}, {"from": "OK Foods Heavener", "to": "Highway 59", "miles": 49.0}, {"from": "OK Foods Heavener", "to": "Hydro Ag Mulberry Plow", "miles": 69.0}, {"from": "OK Foods Heavener", "to": "Kibler Plow Sites and Storage", "miles": 59.0}, {"from": "OK Foods Heavener", "to": "Cecil Plow", "miles": 74.0}, {"from": "OK Foods Heavener", "to": "Greenwood", "miles": 48.0}, {"from": "OK Foods Heavener", "to": "Paris Bottoms", "miles": 59.0}, {"from": "OK Foods Heavener", "to": "Denali Plow Ozark", "miles": 86.0}, {"from": "OK Foods Heavener", "to": "Allen Gas Station", "miles": 22.0}, {"from": "OK Foods Heavener", "to": "Allens Canning", "miles": 123.0}];
+const STOP_PAY = 37;
+const DETENTION_RATE_PER_HOUR = 30;
+const STORAGE_KEY = "jbHuntDenaliTrackerV4";
+const DEFAULT_STOP_COUNT = 3;
 
-const tripList = document.getElementById("tripList");
-const payRateInput = document.getElementById("payRate");
-const tripDateInput = document.getElementById("tripDate");
-const addStopBtn = document.getElementById("addStopBtn");
-const resetBtn = document.getElementById("resetBtn");
+const memoryStorage = {};
+const storage = {
+  get(key) {
+    try { return localStorage.getItem(key); } catch (e) { return Object.prototype.hasOwnProperty.call(memoryStorage, key) ? memoryStorage[key] : null; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { memoryStorage[key] = String(value); }
+  }
+};
 
-const totalMilesEl = document.getElementById("totalMiles");
-const totalPaidStopsEl = document.getElementById("totalPaidStops");
-const milesPayEl = document.getElementById("milesPay");
-const loadPayEl = document.getElementById("loadPay");
-const totalPayEl = document.getElementById("totalPay");
-const stickySummary = document.getElementById("stickySummary");
-const summaryToggle = document.getElementById("summaryToggle");
-const summaryMiniTotal = document.getElementById("summaryMiniTotal");
+const state = {
+  currentDay: {
+    date: "",
+    payRate: "",
+    notes: "",
+    stops: []
+  },
+  savedDays: [],
+  generatedRoutes: {},
+  geocodeCache: {},
+  ui: {
+    selectedWeekStart: null,
+    footerCollapsed: false
+  }
+};
 
-function currency(n) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n || 0);
+const officialRouteMap = new Map();
+for (const r of OFFICIAL_ROUTES) {
+  officialRouteMap.set(keyFor(r.from, r.to), Number(r.miles));
 }
 
-function keyFor(a, b) {
-  return `${(a || "").trim()}|${(b || "").trim()}`;
+const els = {
+  tabs: [...document.querySelectorAll(".tab-btn")],
+  views: [...document.querySelectorAll(".view")],
+  stopsContainer: document.getElementById("stopsContainer"),
+  dayDate: document.getElementById("dayDate"),
+  payRate: document.getElementById("payRate"),
+  dayNotes: document.getElementById("dayNotes"),
+  addStopBtn: document.getElementById("addStopBtn"),
+  saveDayBtn: document.getElementById("saveDayBtn"),
+  resetDayBtn: document.getElementById("resetDayBtn"),
+  todayTotalsGrid: document.getElementById("todayTotalsGrid"),
+  footerWrap: document.getElementById("footerWrap"),
+  footerToggleBtn: document.getElementById("footerToggleBtn"),
+  footerToggleIcon: document.getElementById("footerToggleIcon"),
+  weekSpanLabel: document.getElementById("weekSpanLabel"),
+  weekTotals: document.getElementById("weekTotals"),
+  weekDaysList: document.getElementById("weekDaysList"),
+  prevWeekBtn: document.getElementById("prevWeekBtn"),
+  nextWeekBtn: document.getElementById("nextWeekBtn"),
+  historyWeeks: document.getElementById("historyWeeks")
+};
+
+function keyFor(a,b) {
+  return `${(a||"").trim()}|||${(b||"").trim()}`;
 }
 
-function getMiles(prev, curr) {
-  if (!prev || !curr) return "";
-  const exact = ROUTES[keyFor(prev, curr)];
-  if (typeof exact !== "undefined") return exact;
-  const reverse = ROUTES[keyFor(curr, prev)];
-  if (typeof reverse !== "undefined") return reverse;
-  return null;
+function money(v) {
+  const n = Number(v || 0);
+  return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
+}
+
+function fmtMiles(v) {
+  const n = Number(v || 0);
+  return n ? n.toFixed(1).replace(/\.0$/, "") : "0";
+}
+
+function clone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function todayISO() {
+  const now = new Date();
+  const tz = new Date(now.getTime() - now.getTimezoneOffset()*60000);
+  return tz.toISOString().slice(0,10);
+}
+
+function blankStop() {
+  return {
+    location: "",
+    loadUnload: false,
+    detentionMinutes: "",
+    customMiles: "",
+    routeStatus: "blank",
+    routeMessage: "",
+    miles: "",
+    source: "",
+    lookupKey: ""
+  };
+}
+
+function ensureStops(minCount = DEFAULT_STOP_COUNT) {
+  while (state.currentDay.stops.length < minCount) state.currentDay.stops.push(blankStop());
 }
 
 function saveState() {
-  const stops = [...document.querySelectorAll(".stop")].map(stop => ({
-    location: stop.querySelector(".location-input").value.trim(),
-    paid: stop.querySelector(".paid-checkbox").checked
-  }));
-  const state = {
-    payRate: payRateInput.value,
-    tripDate: tripDateInput.value,
-    stops
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  storage.set(STORAGE_KEY, JSON.stringify(state));
 }
 
 function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (e) {
-    return null;
-  }
-}
-
-function createStopRow(data = { location: "", paid: false }) {
-  const index = tripList.children.length + 1;
-  const card = document.createElement("section");
-  card.className = "panel stop";
-  card.innerHTML = `
-    <div class="stop-top">
-      <div class="stop-num">Stop <span class="num">${index}</span></div>
-      <button type="button" class="remove">Remove</button>
-    </div>
-    <input class="location-input" list="location-options" placeholder="Start typing a location..." autocomplete="off" />
-    <div class="row">
-      <label class="checkbox-wrap">
-        <input type="checkbox" class="paid-checkbox" />
-        <span>Load/Unload ($37)</span>
-      </label>
-      <div class="stats">
-        <div class="stat">
-          <div class="label">Miles from previous</div>
-          <div class="value miles-value">—</div>
-        </div>
-        <div class="stat">
-          <div class="label">Stop pay</div>
-          <div class="value stop-pay-value">—</div>
-        </div>
-      </div>
-    </div>
-    <div class="missing">Route not found in the mileage table for this stop pair.</div>
-  `;
-  card.querySelector(".location-input").value = data.location || "";
-  card.querySelector(".paid-checkbox").checked = !!data.paid;
-
-  card.querySelector(".location-input").addEventListener("input", () => {
-    recalc();
-    maybeGrow();
-  });
-  card.querySelector(".paid-checkbox").addEventListener("change", recalc);
-  card.querySelector(".remove").addEventListener("click", () => {
-    card.remove();
-    renumberStops();
-    ensureOneBlankAtEnd();
-    recalc();
-  });
-  return card;
-}
-
-function renumberStops() {
-  [...tripList.children].forEach((card, idx) => {
-    card.querySelector(".num").textContent = idx + 1;
-  });
-}
-
-function ensureOneBlankAtEnd() {
-  const cards = [...tripList.children];
-  if (!cards.length) {
-    tripList.appendChild(createStopRow());
-    tripList.appendChild(createStopRow());
-    renumberStops();
+  const raw = storage.get(STORAGE_KEY);
+  if (!raw) {
+    state.currentDay.date = todayISO();
+    state.ui.selectedWeekStart = weekStart(state.currentDay.date);
+    ensureStops();
     return;
   }
-  const last = cards[cards.length - 1];
-  const lastValue = last.querySelector(".location-input").value.trim();
-  if (lastValue !== "") {
-    tripList.appendChild(createStopRow());
-    renumberStops();
+  try {
+    const parsed = JSON.parse(raw);
+    Object.assign(state, parsed);
+    if (!state.currentDay) state.currentDay = { date: todayISO(), payRate:"", notes:"", stops: [] };
+    if (!state.currentDay.date) state.currentDay.date = todayISO();
+    if (!Array.isArray(state.currentDay.stops)) state.currentDay.stops = [];
+    state.currentDay.stops = state.currentDay.stops.map(s => ({ customMiles: "", ...s }));
+    if (!Array.isArray(state.savedDays)) state.savedDays = [];
+    state.savedDays = state.savedDays.map(day => ({
+      ...day,
+      stops: Array.isArray(day.stops) ? day.stops.map(s => ({ customMiles: "", ...s })) : []
+    }));
+    if (!state.generatedRoutes) state.generatedRoutes = {};
+    if (!state.geocodeCache) state.geocodeCache = {};
+    if (!state.ui) state.ui = { selectedWeekStart: weekStart(state.currentDay.date), footerCollapsed: false };
+    if (!state.ui.selectedWeekStart) state.ui.selectedWeekStart = weekStart(state.currentDay.date);
+    ensureStops();
+  } catch {
+    state.currentDay = { date: todayISO(), payRate:"", notes:"", stops: [blankStop(), blankStop(), blankStop()] };
+    state.savedDays = [];
+    state.generatedRoutes = {};
+    state.geocodeCache = {};
+    state.ui = { selectedWeekStart: weekStart(todayISO()), footerCollapsed: false };
   }
-  // Trim extra empty rows at end, keep exactly one
-  const updated = [...tripList.children];
-  let trailingEmpty = 0;
-  for (let i = updated.length - 1; i >= 0; i--) {
-    const v = updated[i].querySelector(".location-input").value.trim();
-    if (v === "") trailingEmpty++;
-    else break;
-  }
-  while (trailingEmpty > 1) {
-    tripList.lastElementChild.remove();
-    trailingEmpty--;
-  }
-  if (tripList.children.length < 2) {
-    tripList.appendChild(createStopRow());
-  }
-  renumberStops();
 }
 
-function maybeGrow() {
-  ensureOneBlankAtEnd();
-  saveState();
+function weekStart(isoDate) {
+  const d = new Date(isoDate + "T12:00:00");
+  const day = d.getDay();
+  const diff = (day + 6) % 7; // Monday start
+  d.setDate(d.getDate() - diff);
+  return d.toISOString().slice(0,10);
 }
 
-function recalc() {
-  const cards = [...tripList.children];
+function addDays(isoDate, days) {
+  const d = new Date(isoDate + "T12:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+
+function displayDate(isoDate) {
+  if (!isoDate) return "";
+  const d = new Date(isoDate + "T12:00:00");
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function displayWeekRange(startIso) {
+  const endIso = addDays(startIso, 6);
+  return `${displayDate(startIso)} – ${displayDate(endIso)}`;
+}
+
+function calcDetentionPay(minutes) {
+  const mins = Number(minutes || 0);
+  return mins * (DETENTION_RATE_PER_HOUR / 60);
+}
+
+function calcStopPay(stop) {
+  return stop.loadUnload ? STOP_PAY : 0;
+}
+
+function totalsForDay(day) {
   let totalMiles = 0;
-  let totalPaidStops = 0;
-  let totalLoadPay = 0;
-  const payRate = parseFloat(payRateInput.value) || 0;
+  let totalStopPay = 0;
+  let totalDetentionPay = 0;
+  let generatedCount = 0;
+  for (const stop of day.stops || []) {
+    totalStopPay += calcStopPay(stop);
+    totalDetentionPay += calcDetentionPay(stop.detentionMinutes);
+    totalMiles += Number(stop.miles || 0);
+    if (stop.source === "generated") generatedCount += 1;
+  }
+  const rate = Number(day.payRate || 0);
+  const mileagePay = totalMiles * rate;
+  return {
+    totalMiles,
+    totalStopPay,
+    totalDetentionPay,
+    mileagePay,
+    totalPay: mileagePay + totalStopPay + totalDetentionPay,
+    generatedCount
+  };
+}
 
-  cards.forEach((card, idx) => {
-    const location = card.querySelector(".location-input").value.trim();
-    const prevLocation = idx > 0 ? cards[idx - 1].querySelector(".location-input").value.trim() : "";
-    const milesBox = card.querySelector(".miles-value");
-    const stopPayBox = card.querySelector(".stop-pay-value");
-    const paid = card.querySelector(".paid-checkbox").checked;
-
-    card.classList.remove("missing-route");
-
-    let milesDisplay = "—";
-    if (idx === 0 || !location) {
-      milesDisplay = "—";
-    } else if (!prevLocation) {
-      milesDisplay = "—";
-    } else {
-      const miles = getMiles(prevLocation, location);
-      if (miles === null) {
-        milesDisplay = "Missing";
-        card.classList.add("missing-route");
-      } else {
-        totalMiles += Number(miles);
-        milesDisplay = String(Number(miles));
-      }
-    }
-
-    if (paid && location) {
-      totalPaidStops += 1;
-      totalLoadPay += LOAD_PAY;
-      stopPayBox.textContent = currency(LOAD_PAY);
-    } else {
-      stopPayBox.textContent = "—";
-    }
-    milesBox.textContent = milesDisplay;
-  });
-
-  const milesPay = totalMiles * payRate;
-  totalMilesEl.textContent = String(totalMiles);
-  totalPaidStopsEl.textContent = String(totalPaidStops);
-  milesPayEl.textContent = currency(milesPay);
-  loadPayEl.textContent = currency(totalLoadPay);
-  const overall = milesPay + totalLoadPay;
-  totalPayEl.textContent = currency(overall);
-  summaryMiniTotal.textContent = currency(overall);
-
+function setCurrentDay(day) {
+  state.currentDay = clone(day);
+  ensureStops();
   saveState();
+  bindInputsFromState();
+  renderAll();
+  setActiveTab("todayView");
 }
 
-function resetTrip() {
-  localStorage.removeItem(STORAGE_KEY);
-  tripList.innerHTML = "";
-  tripDateInput.value = new Date().toISOString().slice(0,10);
-  payRateInput.value = "";
-  tripList.appendChild(createStopRow());
-  tripList.appendChild(createStopRow());
-  renumberStops();
-  recalc();
+function resetDay() {
+  state.currentDay = {
+    date: todayISO(),
+    payRate: state.currentDay.payRate || "",
+    notes: "",
+    stops: [blankStop(), blankStop(), blankStop()]
+  };
+  saveState();
+  bindInputsFromState();
+  renderAll();
 }
 
-function boot() {
-  const datalist = document.createElement("datalist");
-  datalist.id = "location-options";
-  LOCATIONS.forEach(name => {
-    const opt = document.createElement("option");
-    opt.value = name;
-    datalist.appendChild(opt);
+function bindInputsFromState() {
+  els.dayDate.value = state.currentDay.date || todayISO();
+  els.payRate.value = state.currentDay.payRate;
+  els.dayNotes.value = state.currentDay.notes || "";
+}
+
+function setActiveTab(id) {
+  els.tabs.forEach(btn => btn.classList.toggle("active", btn.dataset.view === id));
+  els.views.forEach(v => v.classList.toggle("active", v.id === id));
+}
+
+function createLocationDatalist() {
+  const list = document.getElementById("locationSuggestions");
+  if (!list) return;
+  list.innerHTML = LOCATIONS.map(name => `<option value="${escapeHtml(name)}"></option>`).join("");
+}
+
+function normalizeLocationName(raw) {
+  const value = String(raw || "").trim();
+  if (!value) return "";
+  const lower = value.toLowerCase();
+  return LOCATIONS.find(name => name.toLowerCase() === lower) || value;
+}
+
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function renderStops() {
+  els.stopsContainer.innerHTML = "";
+  state.currentDay.stops.forEach((stop, index) => {
+    const card = document.createElement("div");
+    card.className = "card stop";
+    const stopPay = calcStopPay(stop);
+    const detentionPay = calcDetentionPay(stop.detentionMinutes);
+    let routeBadge = "";
+    if (stop.source === "official") {
+      routeBadge = `<span class="pill good">Official miles</span>`;
+    } else if (stop.source === "generated") {
+      routeBadge = `<span class="pill warn">Generated miles</span>`;
+    } else if (stop.source === "pending") {
+      routeBadge = `<span class="pill warn">Looking up miles…</span>`;
+    } else if (stop.source === "missing") {
+      routeBadge = `<span class="pill warn">No miles found</span>`;
+    } else if (stop.source === "custom") {
+      routeBadge = `<span class="pill">Custom miles</span>`;
+    }
+    const routeNote = stop.routeMessage ? `<div class="small-note route-note">${escapeHtml(stop.routeMessage)}</div>` : "";
+    const removeBtn = state.currentDay.stops.length > 1
+      ? `<button class="btn small danger" data-action="remove-stop" data-index="${index}">Remove</button>` : "";
+    card.innerHTML = `
+      <div class="stop-head">
+        <div class="inline-meta">
+          <span class="stop-index">${index + 1}</span>
+          <div>
+            <div style="font-weight:900;">Stop ${index + 1}</div>
+            <div class="tiny">${index === 0 ? "Start stop" : "Leg from stop " + index}</div>
+          </div>
+        </div>
+        ${removeBtn}
+      </div>
+      <div class="row">
+        <div>
+          <label>Location</label>
+          <input type="text" list="locationSuggestions" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Start typing a location" value="${escapeHtml(stop.location || "")}" data-action="location-change" data-index="${index}">
+          <div class="small-note type-note">Type to narrow the list, then tap the matching stop.</div>
+        </div>
+      </div>
+      <div class="mini-grid" style="margin-top:10px;">
+        <div>
+          <label>Load / Unload</label>
+          <div class="checkline">
+            <input type="checkbox" data-action="toggle-load" data-index="${index}" ${stop.loadUnload ? "checked" : ""}>
+            <span>+$37</span>
+          </div>
+        </div>
+        <div>
+          <label>Detention Minutes</label>
+          <input type="number" min="0" step="1" inputmode="numeric" placeholder="0" value="${escapeHtml(stop.detentionMinutes)}" data-action="detention-change" data-index="${index}">
+        </div>
+      </div>
+      <div class="mini-grid" style="margin-top:10px;">
+        <div class="metric">
+          <div class="k">Miles From Previous</div>
+          <div class="v">${stop.miles === "" ? "—" : fmtMiles(stop.miles)}</div>
+        </div>
+        <div class="metric">
+          <div class="k">This Stop Pay</div>
+          <div class="v">${money(stopPay + detentionPay)}</div>
+        </div>
+      </div>
+      ${index > 0 ? `
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>Custom Miles Override</label>
+          <input type="number" min="0" step="0.1" inputmode="decimal" placeholder="Leave blank to use official/generated miles" value="${escapeHtml(stop.customMiles)}" data-action="custom-miles-change" data-index="${index}">
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:10px;">
+        <button type="button" class="btn small" data-action="apply-custom-miles" data-index="${index}">Use Custom Miles</button>
+        <button type="button" class="btn small" data-action="recalculate-miles" data-index="${index}">Recalculate Miles</button>
+      </div>` : ""}
+      <div class="inline-meta" style="margin-top:10px;">
+        ${routeBadge}
+        ${stop.source === "generated" ? '<span class="generated-tag">May not match official pay miles</span>' : ''}${stop.source === "custom" ? '<span class="generated-tag">Manual override is being used for this leg</span>' : ''}
+        ${detentionPay ? `<span class="pill">Detention ${money(detentionPay)}</span>` : ""}
+        ${stopPay ? `<span class="pill">Stop pay ${money(stopPay)}</span>` : ""}
+      </div>
+      ${routeNote}
+    `;
+    els.stopsContainer.appendChild(card);
   });
-  document.body.appendChild(datalist);
+}
 
-  const saved = loadState();
-  tripDateInput.value = saved?.tripDate || new Date().toISOString().slice(0,10);
-  payRateInput.value = saved?.payRate || "";
-
-  if (saved?.stops?.length) {
-    saved.stops.forEach(stop => tripList.appendChild(createStopRow(stop)));
-  } else {
-    tripList.appendChild(createStopRow());
-    tripList.appendChild(createStopRow());
+async function updateRoutesForAllStops() {
+  // clear first stop route fields
+  if (state.currentDay.stops[0]) {
+    state.currentDay.stops[0].miles = "";
+    state.currentDay.stops[0].source = "";
+    state.currentDay.stops[0].routeStatus = "blank";
+    state.currentDay.stops[0].routeMessage = "";
   }
-  ensureOneBlankAtEnd();
-  renumberStops();
-  recalc();
+  for (let i = 1; i < state.currentDay.stops.length; i++) {
+    await resolveRouteForIndex(i);
+  }
+  saveState();
+  renderTotals();
+  renderWeek();
+  renderHistory();
+}
 
-  summaryToggle.addEventListener("click", function(){
-    const collapsed = stickySummary.classList.toggle("is-collapsed");
-    summaryToggle.setAttribute("aria-expanded", String(!collapsed));
-  });
+async function resolveRouteForIndex(i) {
+  const prev = state.currentDay.stops[i-1];
+  const curr = state.currentDay.stops[i];
+  curr.miles = "";
+  curr.source = "";
+  curr.routeStatus = "blank";
+  curr.routeMessage = "";
+  if (!prev?.location || !curr?.location) return;
 
-  function handleAddStop(e) {
-    if (e) e.preventDefault();
-    tripList.appendChild(createStopRow());
-    renumberStops();
-    recalc();
-    const input = tripList.lastElementChild.querySelector('.location-input');
-    if (input) {
-      input.focus();
-      setTimeout(() => input.scrollIntoView({behavior:'smooth', block:'center'}), 50);
+  if (curr.customMiles !== "" && curr.customMiles != null && !Number.isNaN(Number(curr.customMiles))) {
+    curr.miles = roundToTenth(Number(curr.customMiles));
+    curr.source = "custom";
+    curr.routeStatus = "custom";
+    curr.routeMessage = "Custom miles override applied for this leg.";
+    return;
+  }
+
+  const exactKey = keyFor(prev.location, curr.location);
+  const reverseKey = keyFor(curr.location, prev.location);
+
+  if (officialRouteMap.has(exactKey)) {
+    curr.miles = officialRouteMap.get(exactKey);
+    curr.source = "official";
+    curr.routeStatus = "official";
+    curr.lookupKey = exactKey;
+    curr.routeMessage = "Official miles found in your route table.";
+    return;
+  }
+  if (officialRouteMap.has(reverseKey)) {
+    curr.miles = officialRouteMap.get(reverseKey);
+    curr.source = "official";
+    curr.routeStatus = "official";
+    curr.lookupKey = reverseKey;
+    curr.routeMessage = "Official miles found using the reverse route pair.";
+    return;
+  }
+
+  if (state.generatedRoutes[exactKey] != null) {
+    curr.miles = state.generatedRoutes[exactKey];
+    curr.source = "generated";
+    curr.routeStatus = "generated";
+    curr.lookupKey = exactKey;
+    curr.routeMessage = "Generated from addresses because no official mile count was found. May not match paid miles.";
+    return;
+  }
+  if (state.generatedRoutes[reverseKey] != null) {
+    curr.miles = state.generatedRoutes[reverseKey];
+    curr.source = "generated";
+    curr.routeStatus = "generated";
+    curr.lookupKey = reverseKey;
+    curr.routeMessage = "Generated from addresses using the reverse route pair. May not match paid miles.";
+    return;
+  }
+
+  const fromAddress = LOCATION_ADDRESSES[prev.location];
+  const toAddress = LOCATION_ADDRESSES[curr.location];
+  if (!fromAddress || !toAddress) {
+    curr.source = "missing";
+    curr.routeStatus = "missing";
+    curr.routeMessage = "No official miles found, and one or both stop addresses are missing.";
+    return;
+  }
+
+  curr.source = "pending";
+  curr.routeStatus = "pending";
+  curr.routeMessage = "Trying address-based estimate…";
+  renderStops();
+  try {
+    const miles = await fetchGeneratedMiles(prev.location, fromAddress, curr.location, toAddress);
+    if (miles == null || Number.isNaN(miles)) {
+      curr.source = "missing";
+      curr.routeStatus = "missing";
+      curr.routeMessage = "Could not generate miles from the addresses for this leg.";
+      return;
+    }
+    curr.miles = roundToTenth(miles);
+    curr.source = "generated";
+    curr.routeStatus = "generated";
+    curr.lookupKey = exactKey;
+    state.generatedRoutes[exactKey] = curr.miles;
+    curr.routeMessage = "Generated from addresses because no official mile count was found. May not match paid miles.";
+  } catch (err) {
+    curr.source = "missing";
+    curr.routeStatus = "missing";
+    curr.routeMessage = "Could not generate miles from the addresses for this leg.";
+  }
+}
+
+function roundToTenth(n) {
+  return Math.round(Number(n) * 10) / 10;
+}
+
+async function applyCustomMiles(index) {
+  if (index < 1) return;
+  const stop = state.currentDay.stops[index];
+  if (!stop) return;
+  const raw = stop.customMiles;
+  if (raw === "" || raw == null || Number.isNaN(Number(raw))) return;
+  stop.customMiles = roundToTenth(Number(raw));
+  await resolveRouteForIndex(index);
+  saveState();
+  renderAll();
+}
+
+async function recalculateMiles(index) {
+  if (index < 1) return;
+  const prev = state.currentDay.stops[index - 1];
+  const stop = state.currentDay.stops[index];
+  if (!prev?.location || !stop?.location) return;
+  const exactKey = keyFor(prev.location, stop.location);
+  const reverseKey = keyFor(stop.location, prev.location);
+  delete state.generatedRoutes[exactKey];
+  delete state.generatedRoutes[reverseKey];
+  stop.customMiles = "";
+  await resolveRouteForIndex(index);
+  saveState();
+  renderAll();
+}
+
+async function fetchGeneratedMiles(fromName, fromAddress, toName, toAddress) {
+  const fromCoord = await geocodeAddress(fromName, fromAddress);
+  const toCoord = await geocodeAddress(toName, toAddress);
+  if (!fromCoord || !toCoord) return null;
+
+  const routeUrls = [
+    `https://router.project-osrm.org/route/v1/driving/${fromCoord.lon},${fromCoord.lat};${toCoord.lon},${toCoord.lat}?overview=false`,
+    `https://routing.openstreetmap.de/routed-car/route/v1/driving/${fromCoord.lon},${fromCoord.lat};${toCoord.lon},${toCoord.lat}?overview=false`
+  ];
+
+  for (const url of routeUrls) {
+    try {
+      const res = await fetch(url, { mode: "cors", cache: "no-store" });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const meters = data?.routes?.[0]?.distance;
+      if (meters) return meters / 1609.344;
+    } catch (err) {
+      // try next routing endpoint
     }
   }
-
-  ['click','touchend'].forEach(evt => addStopBtn.addEventListener(evt, handleAddStop, {passive:false}));
-  ['click','touchend'].forEach(evt => resetBtn.addEventListener(evt, function(e){ e.preventDefault(); resetTrip(); }, {passive:false}));
-  payRateInput.addEventListener("input", recalc);
-  tripDateInput.addEventListener("input", saveState);
+  return null;
 }
 
-boot();
+async function geocodeAddress(name, address) {
+  const key = name + "||" + address;
+  if (state.geocodeCache[key]) return state.geocodeCache[key];
+
+  const queries = [];
+  if (address && address !== "UNKNOWN") queries.push(address);
+  if (name) queries.push(name);
+
+  for (const query of queries) {
+    const coord = await tryGeocodeQuery(query);
+    if (coord) {
+      state.geocodeCache[key] = coord;
+      saveState();
+      return coord;
+    }
+  }
+  return null;
+}
+
+async function tryGeocodeQuery(query) {
+  const urls = [
+    `https://photon.komoot.io/api/?limit=1&q=${encodeURIComponent(query)}`,
+    `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`
+  ];
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        mode: "cors",
+        cache: "no-store",
+        headers: { "Accept": "application/json" }
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+
+      if (url.includes("photon")) {
+        const feat = data?.features?.[0];
+        const coords = feat?.geometry?.coordinates;
+        if (Array.isArray(coords) && coords.length >= 2) {
+          return { lon: Number(coords[0]), lat: Number(coords[1]) };
+        }
+      } else {
+        if (Array.isArray(data) && data[0]) {
+          return { lat: Number(data[0].lat), lon: Number(data[0].lon) };
+        }
+      }
+    } catch (err) {
+      // try next geocoder
+    }
+  }
+  return null;
+}
+
+function renderTotals() {
+  const totals = totalsForDay(state.currentDay);
+  els.todayTotalsGrid.innerHTML = `
+    <div class="metric"><div class="k">Total Miles</div><div class="v">${fmtMiles(totals.totalMiles)}</div></div>
+    <div class="metric"><div class="k">Mileage Pay</div><div class="v">${money(totals.mileagePay)}</div></div>
+    <div class="metric"><div class="k">Load Pay</div><div class="v">${money(totals.totalStopPay)}</div></div>
+    <div class="metric"><div class="k">Detention Pay</div><div class="v">${money(totals.totalDetentionPay)}</div></div>
+    <div class="metric"><div class="k">Generated Legs</div><div class="v">${totals.generatedCount}</div></div>
+    <div class="metric"><div class="k">Total Pay</div><div class="v">${money(totals.totalPay)}</div></div>
+  `;
+}
+
+function renderWeek() {
+  const start = state.ui.selectedWeekStart || weekStart(state.currentDay.date || todayISO());
+  els.weekSpanLabel.textContent = displayWeekRange(start);
+
+  const days = state.savedDays
+    .filter(d => d.date >= start && d.date <= addDays(start, 6))
+    .sort((a,b) => a.date.localeCompare(b.date));
+
+  let weekMiles = 0, weekMileagePay = 0, weekStopPay = 0, weekDetentionPay = 0, weekTotal = 0;
+  for (const d of days) {
+    const t = totalsForDay(d);
+    weekMiles += t.totalMiles;
+    weekMileagePay += t.mileagePay;
+    weekStopPay += t.totalStopPay;
+    weekDetentionPay += t.totalDetentionPay;
+    weekTotal += t.totalPay;
+  }
+
+  els.weekTotals.innerHTML = `
+    <div class="metric"><div class="k">Week Miles</div><div class="v">${fmtMiles(weekMiles)}</div></div>
+    <div class="metric"><div class="k">Week Mileage Pay</div><div class="v">${money(weekMileagePay)}</div></div>
+    <div class="metric"><div class="k">Week Stop Pay</div><div class="v">${money(weekStopPay)}</div></div>
+    <div class="metric"><div class="k">Week Detention Pay</div><div class="v">${money(weekDetentionPay)}</div></div>
+    <div class="metric"><div class="k">Saved Days</div><div class="v">${days.length}</div></div>
+    <div class="metric"><div class="k">Week Total Pay</div><div class="v">${money(weekTotal)}</div></div>
+  `;
+
+  if (!days.length) {
+    els.weekDaysList.innerHTML = `<div class="empty">No saved days in this week yet.</div>`;
+    return;
+  }
+
+  els.weekDaysList.innerHTML = days.map(day => {
+    const t = totalsForDay(day);
+    return `
+      <div class="saved-day">
+        <h3>${displayDate(day.date)}</h3>
+        <div class="line">Miles: ${fmtMiles(t.totalMiles)} · Rate: ${money(day.payRate || 0)}/mi · Total: ${money(t.totalPay)}</div>
+        <div class="line">Stop pay: ${money(t.totalStopPay)} · Detention: ${money(t.totalDetentionPay)}${t.generatedCount ? ` · Generated legs: ${t.generatedCount}` : ""}</div>
+        ${day.notes ? `<div class="line">${escapeHtml(day.notes)}</div>` : ""}
+        <div class="actions">
+          <button class="btn small primary" data-action="load-saved-day" data-day-id="${escapeHtml(day.id)}">Load Into Today</button>
+          <button class="btn small danger" data-action="delete-saved-day" data-day-id="${escapeHtml(day.id)}">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function groupHistoryWeeks() {
+  const groups = new Map();
+  const sorted = [...state.savedDays].sort((a,b)=>b.date.localeCompare(a.date));
+  for (const day of sorted) {
+    const wk = weekStart(day.date);
+    if (!groups.has(wk)) groups.set(wk, []);
+    groups.get(wk).push(day);
+  }
+  return [...groups.entries()];
+}
+
+function renderHistory() {
+  const groups = groupHistoryWeeks();
+  if (!groups.length) {
+    els.historyWeeks.innerHTML = `<div class="empty">No previous weeks saved yet.</div>`;
+    return;
+  }
+  els.historyWeeks.innerHTML = groups.map(([wk, days], idx) => {
+    let miles=0, pay=0, stopPay=0, detention=0;
+    for (const d of days) {
+      const t = totalsForDay(d);
+      miles += t.totalMiles;
+      pay += t.totalPay;
+      stopPay += t.totalStopPay;
+      detention += t.totalDetentionPay;
+    }
+    return `
+      <div class="history-week ${idx === 0 ? "open" : ""}">
+        <div class="history-head" data-action="toggle-history-week">
+          <div>
+            <div style="font-weight:900;">${displayWeekRange(wk)}</div>
+            <div class="tiny">${days.length} saved day${days.length === 1 ? "" : "s"}</div>
+          </div>
+          <div class="right">
+            <div style="font-weight:900;">${money(pay)}</div>
+            <div class="tiny">${fmtMiles(miles)} miles</div>
+          </div>
+        </div>
+        <div class="history-body">
+          <div class="small-note" style="margin-bottom:10px;">Stop pay ${money(stopPay)} · Detention ${money(detention)}</div>
+          <div class="list">
+            ${days.map(day => {
+              const t = totalsForDay(day);
+              return `
+                <div class="saved-day">
+                  <h3>${displayDate(day.date)}</h3>
+                  <div class="line">Total pay: ${money(t.totalPay)} · Miles: ${fmtMiles(t.totalMiles)}</div>
+                  ${day.notes ? `<div class="line">${escapeHtml(day.notes)}</div>` : ""}
+                  <div class="actions">
+                    <button class="btn small primary" data-action="load-saved-day" data-day-id="${escapeHtml(day.id)}">Load Into Today</button>
+                    <button class="btn small danger" data-action="delete-saved-day" data-day-id="${escapeHtml(day.id)}">Delete</button>
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function addStop(scroll = true) {
+  state.currentDay.stops.push(blankStop());
+  saveState();
+  renderAll();
+  if (scroll) {
+    setTimeout(() => {
+      const cards = els.stopsContainer.querySelectorAll(".stop");
+      cards[cards.length - 1]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 60);
+  }
+}
+
+function removeStop(index) {
+  state.currentDay.stops.splice(index, 1);
+  ensureStops(1);
+  saveState();
+  updateRoutesForAllStops().then(() => renderAll());
+}
+
+function upsertSavedDay() {
+  const day = clone(state.currentDay);
+  day.id = day.id || `${day.date}__${Date.now()}`;
+  // prune trailing blank stops
+  day.stops = day.stops.filter((s, idx) => idx === 0 || s.location || (day.stops[idx-1] && day.stops[idx-1].location));
+  const existingIdx = state.savedDays.findIndex(d => d.date === day.date);
+  if (existingIdx >= 0) {
+    day.id = state.savedDays[existingIdx].id;
+    state.savedDays[existingIdx] = day;
+  } else {
+    state.savedDays.push(day);
+  }
+  state.savedDays.sort((a,b)=>a.date.localeCompare(b.date));
+  saveState();
+  renderWeek();
+  renderHistory();
+}
+
+function deleteSavedDay(id) {
+  state.savedDays = state.savedDays.filter(d => d.id !== id);
+  saveState();
+  renderWeek();
+  renderHistory();
+}
+
+function renderAll() {
+  renderStops();
+  renderTotals();
+  renderWeek();
+  renderHistory();
+  applyFooterState();
+}
+
+function applyFooterState() {
+  els.footerWrap.classList.toggle("collapsed", !!state.ui.footerCollapsed);
+  els.footerToggleIcon.textContent = state.ui.footerCollapsed ? "▴" : "▾";
+}
+
+function attachEvents() {
+  els.dayDate.addEventListener("change", () => {
+    state.currentDay.date = els.dayDate.value || todayISO();
+    if (!state.ui.selectedWeekStart) state.ui.selectedWeekStart = weekStart(state.currentDay.date);
+    saveState();
+    renderWeek();
+    renderHistory();
+  });
+  els.payRate.addEventListener("input", () => {
+    state.currentDay.payRate = els.payRate.value;
+    saveState();
+    renderTotals();
+    renderWeek();
+    renderHistory();
+  });
+  els.dayNotes.addEventListener("input", () => {
+    state.currentDay.notes = els.dayNotes.value;
+    saveState();
+  });
+
+  document.body.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const index = Number(btn.dataset.index);
+    const dayId = btn.dataset.dayId;
+    if (action === "remove-stop") removeStop(index);
+    if (action === "load-saved-day") {
+      const day = state.savedDays.find(d => d.id === dayId);
+      if (day) setCurrentDay(day);
+    }
+    if (action === "delete-saved-day") deleteSavedDay(dayId);
+    if (action === "toggle-history-week") {
+      btn.closest(".history-week")?.classList.toggle("open");
+    }
+    if (action === "apply-custom-miles") await applyCustomMiles(index);
+    if (action === "recalculate-miles") await recalculateMiles(index);
+  });
+
+  document.body.addEventListener("change", async (e) => {
+    const el = e.target;
+    const action = el.dataset.action;
+    const index = Number(el.dataset.index);
+    if (Number.isNaN(index)) return;
+
+    if (action === "location-change") {
+      const selectedValue = normalizeLocationName(el.value);
+      state.currentDay.stops[index].location = selectedValue;
+      // grow one row if last stop got used
+      if (index === state.currentDay.stops.length - 1 && selectedValue) {
+        state.currentDay.stops.push(blankStop());
+      }
+      saveState();
+      renderStops();
+      await updateRoutesForAllStops();
+      renderAll();
+    }
+
+    if (action === "toggle-load") {
+      state.currentDay.stops[index].loadUnload = el.checked;
+      saveState();
+      renderTotals();
+      renderWeek();
+      renderHistory();
+      renderStops();
+    }
+  });
+
+  document.body.addEventListener("input", async (e) => {
+    const el = e.target;
+    const action = el.dataset.action;
+    const index = Number(el.dataset.index);
+    if (Number.isNaN(index)) return;
+    if (action === "detention-change") {
+      state.currentDay.stops[index].detentionMinutes = el.value;
+      saveState();
+      renderTotals();
+      renderWeek();
+      renderHistory();
+      renderStops();
+    }
+    if (action === "custom-miles-change") {
+      state.currentDay.stops[index].customMiles = el.value;
+      saveState();
+    }
+  });
+
+  const tap = (el, fn) => {
+    if (!el) return;
+    const handler = (ev) => {
+      if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+      fn();
+    };
+    el.addEventListener("click", handler, { passive: false });
+    el.addEventListener("touchend", handler, { passive: false });
+  };
+
+  tap(els.addStopBtn, () => addStop(true));
+  tap(els.saveDayBtn, () => { upsertSavedDay(); setActiveTab("weekView"); });
+  tap(els.resetDayBtn, () => resetDay());
+  tap(els.prevWeekBtn, () => { state.ui.selectedWeekStart = addDays(state.ui.selectedWeekStart, -7); saveState(); renderWeek(); });
+  tap(els.nextWeekBtn, () => { state.ui.selectedWeekStart = addDays(state.ui.selectedWeekStart, 7); saveState(); renderWeek(); });
+  tap(els.footerToggleBtn, () => { state.ui.footerCollapsed = !state.ui.footerCollapsed; saveState(); applyFooterState(); });
+
+  els.tabs.forEach(btn => {
+    const viewId = btn.dataset.view;
+    if (!viewId) return;
+    tap(btn, () => setActiveTab(viewId));
+  });
+}
+
+loadState();
+createLocationDatalist();
+bindInputsFromState();
+attachEvents();
+renderAll();
+updateRoutesForAllStops().then(renderAll);
 </script>
 </body>
 </html>
